@@ -6,7 +6,7 @@
     }
 
 
-    function getField(key) { 
+    function getField (key) { 
     	return function (d) { return d[key]; } 
     }
 
@@ -19,7 +19,7 @@
 
       // generate N normally-distributed random variables
 
-      var two_pi = 2.0*3.14159265358979323846;
+      var twoPI = 2.0*Math.PI;
       var precision  = 1e5;
       var xlist = [];
 
@@ -32,8 +32,8 @@
 
         R = Math.sqrt(-2*Math.log(U1));
 
-        x1 = R * Math.cos(two_pi*U2);
-        x2 = R * Math.sin(two_pi*U2);
+        x1 = R * Math.cos(twoPI*U2);
+        x2 = R * Math.sin(twoPI*U2);
 
         xlist.push(x1);
         xlist.push(x2);
@@ -46,10 +46,12 @@
 
     function randu(N) {
 
+    	var precision = 1e6;
+
     	var x = [];
 
     	for (i = 0; i < N; i++) {
-    		x.push(_.random(0, 1));
+    		x.push(_.random(0, precision)/precision);
     	}
 
     	return x;

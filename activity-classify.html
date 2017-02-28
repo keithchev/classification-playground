@@ -24,14 +24,14 @@
       <div class="row">
 
       <!--  header  -->
-        <div class="col-sm-12 zero-pad-left"><h1>classifier</h1></div>
+        <div class="col-sm-12 zero-pad-left"><h1>Classification playground</h1></div>
       
         <!-- plot controls (above the plot) -->
         <div class="col-sm-12 zero-pad-left">
           <div class="button-group">
-            <div class="plot-button" id="mouse-pan">Pan/zoom</div>
-            <div class="plot-button" id="mouse-edit">Edit points</div>
+            <div class="plot-button" id="mouse-edit">Toggle point editor</div>
             <div class="plot-button" id="reset-plot">Reset view</div>
+            <div class="hint">(shift+click to pan, shift+scroll to zoom)</div>
           </div>  
         </div>  
         
@@ -57,7 +57,7 @@
 
             <div class="plot-button" id="add-control-point">Add control point</div>
             <div class="plot-button" id="remove-control-point">Remove control point</div>
-            
+
             <div>
               <span class="slider-label">Variance</span><input type="range" min="1" max="100" class="parameter-slider" id="slider-std">
             </div>

@@ -5,6 +5,7 @@
       var data, methodName, alpha, theta, x, y;
       var counter = 0;
 
+      // step size hard coded for now
       alpha = .01;
 
       // theta is 1xn array 
@@ -36,8 +37,10 @@
 
       function logistic () {}
 
+      // batch gradient descent
       logistic.stepBGD = function () { }
 
+      // stochastic gradient descent
       logistic.stepSGD = function () {
 
         var i, j;
@@ -78,25 +81,47 @@
       // initialization/reset procedures
       logistic.init = function () {
 
+        counter = 0;
+
         // random theta
         theta = math.multiply(randn(d3.selectAll(".feature.plot-button-active").data().length + 1), 10);
 
         // make the feature function using currently selected features
-        makeFeatureFunction();
+        logistic.featureFunction = makeFeatureFunction();
 
         // set the optz method (for now, only stochastic gradient)
-        setMethod();
+        logistic.step = pickStepMethod();
 
 
         return logistic;
       }
 
+      // construct the function to generate feature vector for [x1,x2] points
+      function makeFeatureFunction () {
+
+        var selectedFeatures = d3.selectAll(".feature.plot-button-active").data();
+
+        return function (x) {
+
+          // offset/bias term  
+          var featureRow = [1];
+          
+          // add currently selected feature functions (x1, x1^2, etc)
+          selectedFeatures.map( feature => featureRow.push(feature.f(x)) );
+          return featureRow;
+        };
+
+      };
+
       // set update method (methodName is set when optimization div is clicked)
-      function setMethod () {
+      function pickStepMethod () {
 
-        var methodList = {"batch": logistic.stepBGD, "stochastic": logistic.stepSGD};
+        var methodList = {
+                          "batch": logistic.stepBGD, 
+                          "stochastic": logistic.stepSGD,
+                         };
 
-        logistic.step = methodList[methodName];
+        return methodList[methodName];
 
       }
 
@@ -121,51 +146,49 @@
         return logistic;
       }
 
-      function makeFeatureFunction () {
-
-        var selectedFeatures = d3.selectAll(".feature.plot-button-active").data();
-
-        logistic.featureFunction = function (x) {
-          var featureRow = [1];
-          selectedFeatures.map( feature => featureRow.push(feature.f(x)) );
-          return featureRow;
-        };
-        
-      };
-
-
 
 
       logistic.loadOptions = function (div) {
 
         div.selectAll("div").remove();
 
-        var featureTypeDivs = div.append("div").attr("id", "#select-features-container")
-                        .selectAll("div").data(featureTypes)
-                        .enter().append("div")
-                        .attr("class", "feature-type");
+        var featureTypeDivs = div.append("div")
+                                 .attr("id", "select-features-container")
+                                 .selectAll("div").data(featureTypes)
+                                 .enter().append("div")
+                                 .attr("class", "feature-type");
 
         featureTypeDivs.selectAll("div").data(featureType => featureType)
-         .enter().append("div")
-         .attr("class", "feature")
-         .html(d => d.label)
-         .on("click", function (d) {
-            var isSelected = !d3.select(this).classed("plot-button-active");
-            d3.select(this).classed("plot-button-active", isSelected);
-          });
+                       .enter().append("div")
+                       .attr("class", "plot-button feature")
+                       .html(d => d.label)
+                       .on("click", function (d) {
+                          var isSelected = !d3.select(this).classed("plot-button-active");
+                          d3.select(this).classed("plot-button-active", isSelected);
+                        });
 
 
         // select optz method buttons
         var optimizationDiv = div.append("div").attr("id", "select-optimization-container");
 
+        //stochastic gradient
         optimizationDiv.append("div")
-                       .attr("id", "select-stochastic")
-                       .attr("class", "select-optimization")
+                       .attr("class", "plot-button select-optimization")
                        .text("Stochastic gradient")
                        .on("click", function () {
                           switchActiveButton(this, ".select-optimization");
                           methodName = "stochastic";
                        });
+
+        //batch gradient 
+        optimizationDiv.append("div")
+                       .attr("class", "plot-button select-optimization")
+                       .text("Batch gradient")
+                       .on("click", function () {
+                          switchActiveButton(this, ".select-optimization");
+                          methodName = "batch";
+                       });
+
 
         return logistic;
       }

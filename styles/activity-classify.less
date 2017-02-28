@@ -76,7 +76,7 @@ rect { shape-rendering: crispEdges; }
   cursor: pointer;
   display: inline-block;
   margin-right: 10px;
-  &:hover { background-color: #eee; }
+  &:hover { color: @link-color; }
 }
 
 .plot-button-active {
@@ -84,6 +84,10 @@ rect { shape-rendering: crispEdges; }
   border-bottom: 0px solid #333;
 }
 
+.hint {
+  font-size: 10px;
+  display: inline-block;
+}
 
 input[type=range].parameter-slider {
   width: 50%;
