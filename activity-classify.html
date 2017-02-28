@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title></title>
+
+  <link rel="icon"          href="../favicon.ico" type="image/x-icon" />
+  <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
+  <!-- Bootstrap css -->
+  <link href="./components/bootstrap/bootstrap.min.custom-breakpoint.css" rel="stylesheet">
+  <!--  leaflet css -->
+  <link rel="stylesheet" href="./components/leaflet/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css?family=Roboto|Roboto+Mono" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:b,i|Roboto+Mono:b,i" rel="stylesheet">
+
+</head>
+<body>
+
+  <div class="container">
+    <div class="container-fluid">
+      <div class="row">
+
+      <!--  header  -->
+        <div class="col-sm-12 zero-pad-left"><h1>classifier</h1></div>
+      
+        <!-- plot controls (above the plot) -->
+        <div class="col-sm-12 zero-pad-left">
+          <div class="button-group">
+            <div class="plot-button" id="mouse-pan">Pan/zoom</div>
+            <div class="plot-button" id="mouse-edit">Edit points</div>
+            <div class="plot-button" id="reset-plot">Reset view</div>
+          </div>  
+        </div>  
+        
+        <!-- main plot container -->
+        <div class="col-sm-7 zero-pad-left" id="plot-container"></div>
+
+        <!-- main controls container (right of plot) -->
+        <div class="col-sm-5 zero-pad-left" id="controls-container">
+          
+          <div class="class-controls">
+            <div class="header">Edit data</div>
+            
+            <div>
+              <div class="plot-button select-data" id="select-blobs">Blobs</div>
+              <div class="plot-button select-data" id="select-xor">XOR</div>
+              <div class="plot-button select-data" id="select-circle">Circle</div>
+            </div>
+
+            <div>
+              <div class="plot-button select-class" id="select-class-a">Class A</div>
+              <div class="plot-button select-class" id="select-class-b">Class B</div>
+            </div>
+
+            <div class="plot-button" id="add-control-point">Add control point</div>
+            <div class="plot-button" id="remove-control-point">Remove control point</div>
+            
+            <div>
+              <span class="slider-label">Variance</span><input type="range" min="1" max="100" class="parameter-slider" id="slider-std">
+            </div>
+          </div>
+
+          <div class="model-controls">
+            <div class="header">Select model</div>
+            <div>
+              <div class="plot-button select-model" id="select-logistic">Logistic</div>
+              <div class="plot-button select-model" id="select-svm">SVM</div>
+              <div class="plot-button select-model" id="select-kmeans">K-Means</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="header">Edit model</div>
+            <div id="model-options-container"></div>
+          </div>
+
+          <div>
+            <div class="header">Control model</div>
+            <div>
+              <span class="slider-label">Alpha</span><input type="range" min="1" max="100" class="parameter-slider" id="slider-alpha">
+            </div>
+            <div>
+              <div class="plot-button" id="init-model">Initialize</div>
+              <div class="plot-button" id="start-model">Start</div>
+              <div class="plot-button" id="step-model">Step</div>
+              <div class="plot-button" id="reset-model">Reset</div>
+            </div>
+          </div>
+
+        </div>  <!-- end controls container -->
+      </div> <!-- end row -->
+    </div> <!-- end container-fluid -->
+  </div> <!-- end container -->
+
+  <!-- custom style -->
+  <link rel="stylesheet/less" type="text/css" href="styles/activity-classify.less" />
+  <link rel="stylesheet/less" type="text/css" href="styles/custom-range-input.less" />
+
+  <!-- less default options -->
+  <script>
+    less = {
+      env: "development",
+      async: false,
+      fileAsync: false,
+      poll: 1000,
+      functions: {},
+      dumpLineNumbers: "comments",
+      relativeUrls: false,
+      rootpath: ":/a.com/"
+    };
+  </script>
+
+  <!-- third-party components -->
+  <script src="./components/less/less.min.js"></script>
+
+  <script src="./components/d3.v4/d3.min.js"></script>
+  <script src="./components/d3-tip/index.js"></script>
+  <script src="./components/d3-scale-chromatic.v1.min.js"></script>
+  <script src="./components/d3-selection-multi.min.js"></script>
+  
+<!-- <script src="./components/leaflet/leaflet.js"></script>
+     <script src="./components/topojson.v1.min.js"></script> -->
+  <script src="./components/crossfilter.v1.min.js"></script>
+  <script src="./components/underscore.min.js"></script>
+  <script src="./components/math.min.js"></script>
+
+  <script src="./scripts/common.js"></script>
+  <script src="./scripts/logistic.js"></script>
+
+  <script src="./scripts/main.js"></script>
+
+  <script>
+
+
+
+  </script>
+
+</body>
+</html>
