@@ -29,9 +29,8 @@
         <!-- plot controls (above the plot) -->
         <div class="col-sm-12 zero-pad-left">
           <div class="button-group">
-            <div class="plot-button" id="mouse-edit">Add/remove points</div>
-            <div class="plot-button" id="reset-plot">Reset view</div>
-            <div class="hint">(shift+click to pan, shift+scroll to zoom)</div>
+            <div class="hint">shift+click to pan, shift+scroll to zoom</div>
+            <div class="plot-button" id="reset-plot">Recenter view</div>
           </div>  
         </div>  
         
@@ -45,23 +44,27 @@
             <div class="header">Edit data</div>
             
             <div>
+              <div class="plot-button-label">Type: </div>
               <div class="plot-button select-data" id="select-blobs">Blobs</div>
               <div class="plot-button select-data" id="select-xor">XOR</div>
               <div class="plot-button select-data" id="select-circle">Circle</div>
             </div>
 
             <div>
-              <div class="plot-button select-class" id="select-class-a">Class A</div>
-              <div class="plot-button select-class" id="select-class-b">Class B</div>
+              <div class="plot-button-label">Edit: </div>
+              <div class="plot-button select-class" id="select-class-a">Blue</div>
+              <div class="plot-button select-class" id="select-class-b">Red</div>
             </div>
 
-            <div class="plot-button" id="add-point">Add point</div>
-            <div class="plot-button" id="remove-point">Remove nearest point</div>
-
-            <div id="slider-noise-container">
-<!--               <span class="slider-label">Noise</span>
-              <input type="range" min="0" max="100" value="0" class="parameter-slider" id="slider-noise"> -->
+            <div>
+              <div class="plot-button-label">Mouse: </div>
+              <div class="plot-button select-mouse" id="mouse-pan">Pan/zoom</div>
+              <div class="plot-button select-mouse" id="mouse-add-point">Add point</div>
+              <div class="plot-button select-mouse" id="mouse-remove-point">Remove point</div>
             </div>
+            
+            <div id="slider-num-container"></div>
+            <div id="slider-noise-container"></div>
           </div>
 
           <div class="model-controls">
@@ -81,7 +84,6 @@
           <div>
             <div class="header">Control model</div>
             <div>
-              <div class="plot-button" id="init-model">Initialize</div>
               <div class="plot-button" id="start-model">Start</div>
               <div class="plot-button" id="step-model">Step</div>
               <div class="plot-button" id="reset-model">Reset</div>

@@ -13,26 +13,17 @@
       // y is a 1xm array of categories (0 or 1) 
 
       var featureTypes = [[
-                            {label: "x<sub>1</sub>",   f: x => x[0] }, 
-                            {label: "x<sub>2</sub>",   f: x => x[1] }
+                            {label: "x<sub>1</sub>",   f: x => x[0], "active": true }, 
+                            {label: "x<sub>2</sub>",   f: x => x[1], "active": true }
                          ],[
-                            {label: "x<sub>1</sub><sup>2</sup>", f: x => x[0]*x[0] }, 
-                            {label: "x<sub>2</sub><sup>2</sup>", f: x => x[1]*x[1] }
+                            {label: "x<sub>1</sub><sup>2</sup>", f: x => x[0]*x[0], "active": false }, 
+                            {label: "x<sub>2</sub><sup>2</sup>", f: x => x[1]*x[1], "active": false }
                          ],[
-                            {label: "x<sub>1</sub>*x<sub>2</sub>", f: x => x[0]*x[1] }
+                            {label: "x<sub>1</sub>*x<sub>2</sub>", f: x => x[0]*x[1], "active": false }
                          ],[
-                            {label: "sin(x<sub>1</sub>)", f: x => Math.sin(x[0]) },
-                            {label: "sin(x<sub>2</sub>)", f: x => Math.sin(x[1]) }
+                            {label: "sin(x<sub>1</sub>)", f: x => Math.sin(x[0]), "active": false },
+                            {label: "sin(x<sub>2</sub>)", f: x => Math.sin(x[1]), "active": false }
                         ]];
-
-      function makeFeature (inds, f) {
-
-        // assume f takes one argument
-        if (typeof inds==="number") return x => f(x[inds]);
-
-        // assume f takes two arguments (i.e., xi, xj)
-        if (inds.length===2) return x => f(x[inds[0]], x[inds[1]]);
-      }
 
 
       function logistic () {}
@@ -54,48 +45,63 @@
 
         counter = counter + 1;
 
-        console.log(counter);
-        console.log(theta);
+        // console.log(counter);
+        // console.log(theta);
+
 
         return logistic;
 
       }
 
       logistic.classifyPoint = function (x) {
-        return {p: logit(math.dot(logistic.featureFunction(x), theta)), domain: [0, .5, 1]};
+        return logit(math.dot(logistic.featureFunction(x), theta));
+      }
+
+      logistic.classDomain = function () {
+        return [0, 1];
       }
 
 
-      logistic.alpha = function(_) {
+      logistic.alpha = function(val) {
         if (!arguments.length) return alpha;
-        alpha = _;
+        alpha = val;
         return logistic;
       }
 
-      logistic.theta = function(_) {
+      logistic.theta = function(val) {
         if (!arguments.length) return theta;
-        theta = _;
+        theta = val;
         return logistic;
       }
 
-      // initialization/reset procedures
-      logistic.init = function () {
+      // full reset - if feature function changed
+      logistic.reset = function () {
 
         counter = 0;
 
-        // random theta
-        theta = math.multiply(randn(d3.selectAll(".feature.plot-button-active").data().length + 1), 10);
+        var stepFunctions = { "batch": logistic.stepBGD, "stochastic": logistic.stepSGD};
+
+        // hard code the optz method 
+        logistic.step = stepFunctions["stochastic"];
 
         // make the feature function using currently selected features
         logistic.featureFunction = makeFeatureFunction();
 
-        // set the optz method (for now, only stochastic gradient)
-        logistic.step = pickStepMethod();
+        // reconstruct the feature vectors from the data
+        logistic.data(data);
 
-        alpha = alphaSlider.value();
+        // random initial theta
+        logistic.initTheta();
 
+        // set alpha (initial slider value set in logistic.load)
+        logistic.alpha(alphaSlider.value());
 
         return logistic;
+      }
+
+      logistic.initTheta = function () {
+        // random theta
+        theta = math.multiply(randn(d3.selectAll(".feature.plot-button-active").data().length + 1), 10);
       }
 
       // construct the function to generate feature vector for [x1,x2] points
@@ -110,28 +116,23 @@
           
           // add currently selected feature functions (x1, x1^2, etc)
           selectedFeatures.map( feature => featureRow.push(feature.f(x)) );
+
           return featureRow;
         };
 
       };
 
-      // set update method (methodName is set when optimization div is clicked)
-      function pickStepMethod () {
 
-        var methodList = {
-                          "batch": logistic.stepBGD, 
-                          "stochastic": logistic.stepSGD,
-                         };
-
-        return methodList[methodName];
-
-      }
-
-      logistic.data = function(_) {
+      logistic.data = function(val) {
 
         if (!arguments.length) return data;
-        data = _;
 
+        data = val;
+
+        // if the feature function hasn't been defined
+        if (!logistic.featureFunction) return logistic;
+
+        // construct x (array of features) and y 
         x = []; 
         y = [];
 
@@ -150,7 +151,7 @@
 
 
 
-      logistic.loadOptions = function (div) {
+      logistic.load = function (div) {
 
         div = d3.select(div);
         div.selectAll("div, input, span").remove();
@@ -166,41 +167,42 @@
                        .attr("class", "plot-button feature")
                        .html(d => d.label)
                        .on("click", function (d) {
-                          var isSelected = !d3.select(this).classed("plot-button-active");
-                          d3.select(this).classed("plot-button-active", isSelected);
-                        });
+                          d3.select(this).classed("plot-button-active", !d3.select(this).classed("plot-button-active"));
+                          if (APP.player) APP.player.reset(); 
+                        })
+                       .classed("plot-button-active", d => d.active);
 
 
-        // select optz method buttons
-        var optimizationDiv = div.append("div").attr("id", "select-optimization-container");
+        // // select optz method buttons
+        // var optimizationDiv = div.append("div").attr("id", "select-optimization-container");
 
-        //stochastic gradient
-        optimizationDiv.append("div")
-                       .attr("class", "plot-button select-optimization")
-                       .text("Stochastic gradient")
-                       .on("click", function () {
-                          switchActiveButton(this, ".select-optimization");
-                          methodName = "stochastic";
-                       });
+        // //stochastic gradient
+        // optimizationDiv.append("div")
+        //                .attr("class", "plot-button select-optimization")
+        //                .text("Stochastic gradient")
+        //                .on("click", function () {
+        //                   switchActiveButton(this, ".select-optimization");
+        //                   if (APP.player) APP.player.reset(); 
+        //                });
 
-        //batch gradient 
-        optimizationDiv.append("div")
-                       .attr("class", "plot-button select-optimization")
-                       .text("Batch gradient")
-                       .on("click", function () {
-                          switchActiveButton(this, ".select-optimization");
-                          methodName = "batch";
-                       });
 
-        alphaSlider = new Slider(div.node(), "Learning rate", [.001, .1], 
-          function (slider) { 
-            APP.player.init(); 
+        alphaSlider = new Slider(div.node(), "Learning rate", [.01, 1], 
+          function (value) { 
+            if (APP.model) APP.model.alpha(value); 
           });
 
-        alphaSlider.value(.01);
+        alphaSlider.value(.1);
+
+        div.append("div")
+           .attr("class", "plot-button")
+           .text("Randomize theta")
+           .on("click", () => {
+            if (APP.model) APP.model.initTheta();
+           });
 
         return logistic;
       }
+
 
       return logistic;
     } // makeLogistic

@@ -1,23 +1,19 @@
 function makeSVM() {
 
-	var x, y, data, alpha, b, counter;
-
-	// hard coded
-	var tol = .001;
-
-	// nonseparability penalty
-	var C = 10, cSlider;
-
-	// radius for gaussian kernel
-	var radius = 1, radiusSlider;
+	var data, 			// data structure 
+	    x, y, 			// feature array x and response vector y
+	    alpha, b,		// lagrange multipliers and threshold
+	    C = 1, 			// nonseparability penalty		
+	    cSlider,		// slider for C (see svm.load)
+	    radius = 3,		// gaussian kernel radius
+	    radiusSlider,	// slider for radius (see svm.load)
+	    counter = 0,	// step counter
+	    tol = .001,		// hard coded tolerance
+	    kernelName = "linear";
 	
 
 	function svm () {}
 
-	svm.init = function () {
-		// init code in svm.data for now
-		return svm;
-	}
 
 	svm.data = function(data) {
 
@@ -36,6 +32,14 @@ function makeSVM() {
 			x.push([d.x1, d.x2]);
 		});
 
+		// must reset whenever data is changed!
+		svm.reset();
+
+		return svm;
+	}
+
+	svm.reset = function () {
+
 		// reinitialize parameters
 		alpha = math.zeros([y.length]);
 
@@ -49,8 +53,9 @@ function makeSVM() {
 
 		svm.kernel = kernelList[kernelName];
 
-		radius = radiusSlider.value();
 		C = cSlider.value();
+
+		radius = radiusSlider.value();
 
 		return svm;
 
@@ -166,8 +171,11 @@ function makeSVM() {
 
 	// classifier value 
 	svm.classifyPoint = function (xThis) {
+		return wDotX(xThis) - b;
+	}
 
-		return {p: wDotX(xThis) - b, domain: [-1, 0, 1]};
+	svm.classDomain = function () {
+		return [-1, 1];
 	}
 
 	svm.radius = function (val) {
@@ -177,7 +185,7 @@ function makeSVM() {
 	}
 
 	// draw the options
-	svm.loadOptions = function (div) {
+	svm.load = function (div) {
 
 		div = d3.select(div);
         div.selectAll("div, input, span").remove();
@@ -192,7 +200,9 @@ function makeSVM() {
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "linear";
-                       });
+	                      if (APP.player) APP.player.reset(); 
+                       })
+                       .classed("plot-button-active", true);
 
         //gaussian kernel
         kernelDiv.append("div")
@@ -201,18 +211,19 @@ function makeSVM() {
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "gaussian";
+	                      if (APP.player) APP.player.reset(); 
                        });
 
-        radiusSlider = new Slider(div.append("div").node(), "Radius", [1,100], 
+        radiusSlider = new Slider(div.append("div").node(), "Radius", [1, 30], 
         	function (slider) { 
-        		APP.player.init(); 
+        		if (APP.player) APP.player.reset(); 
         	});
 
         radiusSlider.value(radius);
 
-        cSlider = new Slider(div.append("div").node(), "C", [0,30], 
+        cSlider = new Slider(div.append("div").node(), "C", [.01, 15], 
         	function (slider) { 
-        		APP.player.init(); 
+        		if (APP.player) APP.player.reset(); 
         	});
 
         cSlider.value(C);

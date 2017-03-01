@@ -29,12 +29,6 @@
 
       }
 
-      init () {
-
-        APP.model = APP.model.init().data(APP.data);
-
-      }
-
       startStop () {
 
         if (this.started) {
@@ -52,7 +46,7 @@
         d3.timer(() => { 
           if (this.stopFlag) return true;
           APP.model.step();
-          APP.plot.drawModel();
+          APP.plot.updateHeatmap();
           return false
         }, 0);
       }
@@ -62,13 +56,13 @@
       }
 
       reset () { 
-        APP.model = APP.model.init(); 
+        APP.model = APP.model.reset(); 
       }
 
       step() {
         if (this.started) return;
         APP.model.step();
-        APP.plot.drawModel();
+        APP.plot.updateHeatmap();
       }
 
       // the callback to run when starting or stopping 
@@ -77,23 +71,24 @@
       }
     }
 
-    // select mouse mode buttons
-    d3.selectAll("#mouse-edit").on("click", function () { 
-      switchActiveButton(this, "#mouse-edit");
-      APP.mouseMode = "edit";
-    });
+    // // select mouse mode buttons
+    // d3.selectAll("#mouse-edit").on("click", function () { 
+    //   switchActiveButton(this, "#mouse-edit");
+    //   APP.mouseMode = "edit";
+    // });
 
     // reset plot
     d3.select("#reset-plot").on("click", function () {  APP.plot.reset(); });
 
+
     // --- DATA CONTROLS --- //
 
+    // select data type
     d3.selectAll(".select-data").on("click", function () { 
       switchActiveButton(this, ".select-data");
       APP.data.type = _.last(d3.select(this).attr("id").split("-"));
       makeData();
-      APP.plot.updateData();
-      if (APP.model) APP.player.init();
+      updateData();
     });
 
     // buttons to select class to edit
@@ -102,30 +97,42 @@
       APP.className = _.last(d3.select(this).attr("id").split("-")).toUpperCase();
     });
 
+    d3.select("#mouse-pan").on("click", function () {
+      switchActiveButton(this, ".select-mouse");
+      APP.panFlag = true;
+    });
+
     // add a point 
-    d3.select("#add-point").on("click", function () { 
+    d3.select("#mouse-add-point").on("click", function () { 
 
-      var point = APP.plot.getLastClickPos();
+      switchActiveButton(this, ".select-mouse");
+      APP.panFlag = false;
 
-      APP.data[APP.className].data.push({x1: point[0], x2: point[1]});
-      APP.plot.updateData(); 
+      APP.plot.clickCallback = function (clickPos) {
 
-      if (APP.model) APP.player.init();
+        if (!APP.className) return;
 
+        APP.data[APP.className].data.push({x1: clickPos[0], x2: clickPos[1]});
+        
+        updateData();
+      }
     });
 
     // remove nearest point
-    d3.select("#remove-point").on("click", function () { 
+    d3.select("#mouse-remove-point").on("click", function () { 
 
-      var point = APP.plot.getLastClickPos();
+      switchActiveButton(this, ".select-mouse");
+      APP.panFlag = false;
 
-      var dist  = APP.data[APP.className].data.map(d => math.norm(math.subtract([d.x1, d.x2], point)));
+      APP.plot.clickCallback = function (clickPos) {
 
-      APP.data[APP.className].data.splice(_.indexOf(dist, _.min(dist)), 1);
-      APP.plot.updateData(); 
+        if (!APP.className) return;
 
-      if (APP.model) APP.player.init();
+        var dist  = APP.data[APP.className].data.map(d => math.norm(math.subtract([d.x1, d.x2], clickPos)));
 
+        APP.data[APP.className].data.splice(_.indexOf(dist, _.min(dist)), 1);
+        updateData();
+      }
     });
 
     // noise slider (arguments: node, label, range, callback(sliderNode))
@@ -133,13 +140,22 @@
       function (val) {
         APP.data.noise = val;
         makeData(); 
-        APP.plot.updateData(); 
-        if (APP.model) APP.player.init();
+        updateData();
+
+      }
+    );
+
+    // N slider (arguments: node, label, range, callback(sliderNode))
+    APP.numSlider = new Slider(d3.select("#slider-num-container").node(), "Num points", [5, 100], 
+      function (val) {
+        APP.data.N = val;
+        makeData(); 
+        updateData();
       }
     );
 
     APP.noiseSlider.value(0);
-
+    APP.numSlider.value(10);
 
     // --- SELECT MODEL CONTROLS --- //
 
@@ -147,14 +163,19 @@
     d3.select("#select-logistic").on("click", function () { 
       switchActiveButton(this, ".select-model");
       APP.model = makeLogistic();
-      APP.model.loadOptions(d3.select("#model-options-container").node());
+      APP.model.load(d3.select("#model-options-container").node());
+      APP.model.data(APP.data).reset();
+      APP.plot.drawHeatmap();
+
     });
 
     // select SVM
     d3.select("#select-svm").on("click", function () { 
       switchActiveButton(this, ".select-model");
       APP.model = makeSVM();
-      APP.model.loadOptions(d3.select("#model-options-container").node());
+      APP.model.load(d3.select("#model-options-container").node());
+      APP.model.data(APP.data).reset();
+      APP.plot.drawHeatmap();
     });
 
 
@@ -162,21 +183,23 @@
 
     APP.player = new Player();
 
-    d3.select("#start-model").on("click", () => APP.player.startStop());
-
     APP.player.onStartStop( function(isPlaying) { 
       d3.select("#start-model").text( function () { return isPlaying ? "Stop" : "Start" });
     });
 
-    d3.select("#init-model").on("click", () => APP.player.init());
-    d3.select("#reset-model").on("click", () => APP.player.reset());
+    d3.select("#start-model").on("click", () => APP.player.startStop());
     d3.select("#step-model").on("click", () => APP.player.step());
+    d3.select("#reset-model").on("click", () => APP.player.reset());
 
 
-
+    // initialize data
     makeData(); 
-    APP.plot.updateData();
+    updateData();
 
+    function updateData() {
+        APP.plot.updateData(); 
+        if (APP.model) APP.model.data(APP.data);
+      }
 
     function makeData() {
 
@@ -264,9 +287,13 @@
 
     function makePlot() {
 
-      var xAxis, yAxis, x1Scale, x2Scale, svg, svgG, modelLine, modelLineSlope, modelLineOffset;
+      var xAxis, yAxis, 
+          x1Scale, x2Scale, classValScale,
+          svg, svgG;
 
-      var pad = 15, plotWidth = 400, plotHeight = 400;
+      var pad = 15, 
+          plotWidth = 400, 
+          plotHeight = 400;
 
       var transformLast = {x:0, y:0, k: 1};
 
@@ -277,12 +304,10 @@
         svg  = d3.select("#plot-container").append("svg").attr("width", plotWidth).attr("height", plotHeight);
         svgG = svg.append("g").attr("transform", `translate(${pad}, ${pad})` );
 
-        svgG.append("g").attrs({"class": "axis", "id": "plot-x-axis", "transform": `translate(0, ${plotHeight-pad-pad} )`});
-        svgG.append("g").attrs({"class": "axis", "id": "plot-y-axis"});
+        svgG.append("g").attrs({class: "axis", id: "plot-x-axis", transform: `translate(0, ${plotHeight-pad-pad} )`});
+        svgG.append("g").attrs({class: "axis", id: "plot-y-axis"});
 
-        svgG.append("g").attr("id", "scatter");
-
-        svgG.append("path").attr("id", "model-path");
+        svgG.append("g").attr("id", "scatter-dot-container");
 
         x1Scale = d3.scaleLinear().range([0, plotWidth - pad - pad]).domain([-10, 10]);
         x2Scale = d3.scaleLinear().range([plotHeight - pad - pad, 0]).domain([-10, 10]);
@@ -293,17 +318,24 @@
         modelLine = d3.line().x(d => x1Scale(d.x))
                              .y(d => x2Scale(d.y));
 
-        svgG.append("circle").attrs({id: "mouse-click-dot", "cx": 0, "cy": 0, "r": 3, "fill": "black"});
 
         svg.on("click", function () { 
-          if (APP.mouseMode!=="edit") return;
-          var pos = d3.mouse(this);
-          d3.select("#mouse-click-dot").attr("cx", pos[0]-pad).attr("cy", pos[1]-pad); 
+
+          var clickPosScreen = d3.mouse(this);
+
+          clickPos = [ x1Scale.invert(clickPosScreen[0]-pad), 
+                       x2Scale.invert(clickPosScreen[1]-pad) ];
+
+          if (plot.clickCallback) plot.clickCallback(clickPos);
+
         });
 
         var zoom = d3.zoom()
-                     .filter( () => { return event.shiftKey; })
-                     .on("zoom", () => { plot.transform(d3.event.transform); });
+                     .filter( () => event.shiftKey || APP.panFlag)
+                     .on("zoom", () => {
+                        plot.transform(d3.event.transform);
+                        plot.drawHeatmap();
+                    });
 
         svg.call(zoom);
 
@@ -314,26 +346,37 @@
 
       }
 
+      plot.clickCallback = function (clickPos) {}
+
+      plot.getLastClickPos = function () {
+        return [ x1Scale.invert(d3.select("#mouse-click-dot").attr("cx")), 
+                 x2Scale.invert(d3.select("#mouse-click-dot").attr("cy")) ];
+      }
+
       // update the data - adds/removes dots
       plot.updateData = function () {
 
         var dots;
 
-        dots = svgG.selectAll(".scatter-dot-A").data(APP.data.A.data);
+        // class A
+        dots = d3.select("#scatter-dot-container")
+                 .selectAll(".scatter-dot-A").data(APP.data.A.data);
 
         dots.enter().append("circle")
             .attrs({"class": "scatter-dot-A", r: 3, "fill": "#6666ff"})
-          .merge(dots).transition()
+          .merge(dots)
             .attr("cx", d => x1Scale(d.x1))
             .attr("cy", d => x2Scale(d.x2));
 
         dots.exit().remove();
 
-        dots = svgG.selectAll(".scatter-dot-B").data(APP.data.B.data);
+        // class B
+        dots = d3.select("#scatter-dot-container")
+                 .selectAll(".scatter-dot-B").data(APP.data.B.data);
 
         dots.enter().append("circle")
             .attrs({"class": "scatter-dot-B", r: 3, "fill": "#ff6666"})
-          .merge(dots).transition()
+          .merge(dots)
             .attr("cx", d => x1Scale(d.x1))
             .attr("cy", d => x2Scale(d.x2));
 
@@ -344,10 +387,6 @@
       }
 
 
-      plot.getLastClickPos = function () {
-        return [ x1Scale.invert(d3.select("#mouse-click-dot").attr("cx")), 
-                 x2Scale.invert(d3.select("#mouse-click-dot").attr("cy")) ];
-      }
 
       plot.transform = function(transform) {
 
@@ -356,6 +395,7 @@
         var x1Domain = x1Scale.domain();
         var x2Domain = x2Scale.domain();
 
+        // if zoomed
         if (dk!==1) {
 
           x1Domain = x1Domain.map( d => d*dk );
@@ -365,6 +405,7 @@
           transformLast.y = transform.y - d3.mean(x2Scale.range());
           transformLast.k = transform.k;
 
+        // if panned
         } else {
 
           x1Domain = x1Domain.map( d => d - x1Scale.invert(transform.x - transformLast.x) );
@@ -399,22 +440,19 @@
         x2Scale.domain(x2Domain);
 
         svgG.selectAll(".scatter-dot-A")
-            .attr("cx", (d) => { return x1Scale(d.x1); })
-            .attr("cy", (d) => { return x2Scale(d.x2); });
+            .attr("cx", d => x1Scale(d.x1))
+            .attr("cy", d => x2Scale(d.x2));
 
         svgG.selectAll(".scatter-dot-B")
-            .attr("cx", (d) => { return x1Scale(d.x1); })
-            .attr("cy", (d) => { return x2Scale(d.x2); });
+            .attr("cx", d => x1Scale(d.x1))
+            .attr("cy", d => x2Scale(d.x2));
 
         // d3.select("#model-path").attr("d", modelLine(makeModelLineData()));
 
         svg.select("#plot-x-axis").call(xAxis);
         svg.select("#plot-y-axis").call(yAxis);
 
-
       }
-
-
 
 
       plot.data = function (data_) {
@@ -423,53 +461,77 @@
         return plot;
       }
 
-      plot.drawLine = function (theta) {
 
-        modelLineSlope   = -theta[1]/theta[2],
-        modelLineOffset  = -theta[0]/theta[2], 
+      plot.drawHeatmap = function () {
 
-        d3.select("#model-path").attr("d", modelLine(makeModelLineData()));
-      }
+        if (!APP.model) return;
 
-      function makeModelLineData() {
-        var xDomain = x1Scale.domain();
-        return [{"x": xDomain[0], "y": xDomain[0] * modelLineSlope + modelLineOffset},
-                {"x": xDomain[1], "y": xDomain[1] * modelLineSlope + modelLineOffset}];
-      }
+        var numHeatmapTiles = 40;
 
-      plot.drawModel = function () {
+        // class A, class B values
+        var classValDomain = APP.model.classDomain();
+        var classValMid    = d3.mean(classValDomain);
 
-        classf = APP.model.classifyPoint([0,0]);
+        // global var (referenced by plot.updateHeatmap)
+        classValScale = d3.scaleLinear()
+                          .range(["#66f", "#fff", "#f66"])
+                          .domain([classValDomain[0], classValMid, classValDomain[1]]);
+            
+        var tileSize = (x1Scale.domain()[1] - x1Scale.domain()[0]) / numHeatmapTiles;
 
-        var pScale = d3.scaleLinear().range(["#66f", "#fff", "#f66"]).domain(classf.domain);
+        var x1Grid = d3.range(x1Scale.domain()[0], x1Scale.domain()[1], tileSize);
+        var x2Grid = d3.range(x2Scale.domain()[0], x2Scale.domain()[1], tileSize);
 
-        var x1Grid = d3.range(x1Scale.domain()[0], x1Scale.domain()[1], .5);
-        var x2Grid = d3.range(x2Scale.domain()[0], x2Scale.domain()[1], .5);
-
-        var width  = Math.abs(x1Scale(x1Grid[1]) - x1Scale(x1Grid[0]));
-        var height = Math.abs(x2Scale(x2Grid[1]) - x2Scale(x2Grid[0]));
+        tileWidth  = Math.abs(x1Scale(x1Grid[1]) - x1Scale(x1Grid[0]));
+        tileHeight = Math.abs(x2Scale(x2Grid[1]) - x2Scale(x2Grid[0]));
 
         var heatmapTiles = [];
 
+        // initialize heatmap tile array
         x1Grid.map( function (x1) {
           x2Grid.map( function (x2) {
-            heatmapTiles.push({"x1": x1, "x2": x2, "p": APP.model.classifyPoint([x1, x2]).p});
+            heatmapTiles.push({x1: x1, x2: x2, classVal: classValMid, updateFlag: false});
           });
         });
+
+        svgG.selectAll(".tile").remove();
 
         var tiles = svgG.selectAll(".tile").data(heatmapTiles);
 
         tiles.enter().append("rect")
              .attr("class", "tile")
-             .attr("x", (d) => { return x1Scale(d.x1); })
-             .attr("y", (d) => { return x2Scale(d.x2); })
-             .attr("width", width)
-             .attr("height", height)
-            .merge(tiles)
-             .attr("fill", (d) => { return pScale(d.p); });
-
+             .attr("x", d => x1Scale(d.x1))
+             .attr("y", d => x2Scale(d.x2))
+             .attr("width", tileWidth)
+             .attr("height", tileHeight)
+             .attr("fill", d => classValScale(d.classVal));
 
       }
+
+      // color the heatmap - assumes plot.drawHeatmap has been called
+      plot.updateHeatmap = function () {
+
+        var tiles = svgG.selectAll(".tile");
+
+        tiles.data().forEach(d => {
+
+          d.updateFlag = false;
+
+          var classVal = APP.model.classifyPoint([d.x1, d.x2]);
+
+          if (Math.abs(d.classVal - classVal) > .01) {
+            d.updateFlag = true;
+            d.classVal = classVal;
+          }
+
+        });
+
+        tiles.filter(d => d.updateFlag)
+             .attr("fill", d => classValScale(d.classVal));
+
+      }
+
+
 
       return plot;
 

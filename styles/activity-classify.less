@@ -12,7 +12,7 @@
 @button-color-hover: #f7f7f7;
 @button-color-selected: #ddd;
 
-@debug-border: 1px;
+@debug-border: 0px;
 
 .main-font {
   font-family: "Roboto", sans-serif; 
@@ -68,7 +68,6 @@ rect { shape-rendering: crispEdges; }
 
 
 .button-group {
-  display: inline-block;
 }
 
 .plot-button {
@@ -76,7 +75,14 @@ rect { shape-rendering: crispEdges; }
   cursor: pointer;
   display: inline-block;
   margin-right: 10px;
-  &:hover { color: @link-color; }
+  color: @link-color;
+  &:hover { color: @link-color + #333; }
+}
+
+.plot-button-label {
+  width: 20%;
+  display: inline-block;
+  margin-right: 10px;
 }
 
 .plot-button-active {
@@ -85,7 +91,7 @@ rect { shape-rendering: crispEdges; }
 }
 
 .hint {
-  font-size: 10px;
+  font-size: 12px;
   display: inline-block;
 }
 
@@ -93,6 +99,7 @@ input[type=range].parameter-slider {
   width: 40%;
   display: inline-block;
   padding-right: 10px;
+  padding-bottom: 3px;
 }
 
 input[type=text].parameter-textbox {
@@ -100,7 +107,13 @@ input[type=text].parameter-textbox {
   display: inline-block;
 }
 
+.slider-container {
+
+}
+
 .slider-label {
+  display: inline-block;
+  width: 100px;
   padding-right: 15px;
 }
 
@@ -115,7 +128,7 @@ input[type=text].parameter-textbox {
 }
 
 .feature {
-  padding: 3px;
+  padding: 1px;
   display: inline-block;
 }
 
