@@ -29,7 +29,7 @@
         <!-- plot controls (above the plot) -->
         <div class="col-sm-12 zero-pad-left">
           <div class="button-group">
-            <div class="plot-button" id="mouse-edit">Toggle point editor</div>
+            <div class="plot-button" id="mouse-edit">Add/remove points</div>
             <div class="plot-button" id="reset-plot">Reset view</div>
             <div class="hint">(shift+click to pan, shift+scroll to zoom)</div>
           </div>  
@@ -55,11 +55,12 @@
               <div class="plot-button select-class" id="select-class-b">Class B</div>
             </div>
 
-            <div class="plot-button" id="add-control-point">Add control point</div>
-            <div class="plot-button" id="remove-control-point">Remove control point</div>
+            <div class="plot-button" id="add-point">Add point</div>
+            <div class="plot-button" id="remove-point">Remove nearest point</div>
 
-            <div>
-              <span class="slider-label">Variance</span><input type="range" min="1" max="100" class="parameter-slider" id="slider-std">
+            <div id="slider-noise-container">
+<!--               <span class="slider-label">Noise</span>
+              <input type="range" min="0" max="100" value="0" class="parameter-slider" id="slider-noise"> -->
             </div>
           </div>
 
@@ -79,9 +80,6 @@
 
           <div>
             <div class="header">Control model</div>
-            <div>
-              <span class="slider-label">Alpha</span><input type="range" min="1" max="100" class="parameter-slider" id="slider-alpha">
-            </div>
             <div>
               <div class="plot-button" id="init-model">Initialize</div>
               <div class="plot-button" id="start-model">Start</div>
@@ -129,6 +127,7 @@
 
   <script src="./scripts/common.js"></script>
   <script src="./scripts/logistic.js"></script>
+  <script src="./scripts/svm.js"></script>
 
   <script src="./scripts/main.js"></script>
 

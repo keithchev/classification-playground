@@ -5,8 +5,8 @@
       var data, methodName, alpha, theta, x, y;
       var counter = 0;
 
-      // step size hard coded for now
-      alpha = .01;
+      // alpha and slider vars (set in .logistic.loadOptions)
+      var alpha, alphaSlider;
 
       // theta is 1xn array 
       // x is a 1xm array of 1xn arrays of features (in 2D: [1, x1, x2, x1**2, x2**2, x1*x2, etc])
@@ -61,8 +61,8 @@
 
       }
 
-      logistic.p = function (x) {
-        return logit(math.dot(logistic.featureFunction(x), theta));
+      logistic.classifyPoint = function (x) {
+        return {p: logit(math.dot(logistic.featureFunction(x), theta)), domain: [0, .5, 1]};
       }
 
 
@@ -91,6 +91,8 @@
 
         // set the optz method (for now, only stochastic gradient)
         logistic.step = pickStepMethod();
+
+        alpha = alphaSlider.value();
 
 
         return logistic;
@@ -150,7 +152,8 @@
 
       logistic.loadOptions = function (div) {
 
-        div.selectAll("div").remove();
+        div = d3.select(div);
+        div.selectAll("div, input, span").remove();
 
         var featureTypeDivs = div.append("div")
                                  .attr("id", "select-features-container")
@@ -189,6 +192,12 @@
                           methodName = "batch";
                        });
 
+        alphaSlider = new Slider(div.node(), "Learning rate", [.001, .1], 
+          function (slider) { 
+            APP.player.init(); 
+          });
+
+        alphaSlider.value(.01);
 
         return logistic;
       }

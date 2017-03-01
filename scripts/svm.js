@@ -1,19 +1,22 @@
 function makeSVM() {
 
-	var x, y, data, alpha, b;
+	var x, y, data, alpha, b, counter;
 
-	var tol = .01;
-	var C = 1;
+	// hard coded
+	var tol = .001;
+
+	// nonseparability penalty
+	var C = 10, cSlider;
+
+	// radius for gaussian kernel
+	var radius = 1, radiusSlider;
 	
 
-	function svm() {}
+	function svm () {}
 
 	svm.init = function () {
-
-		alpha = math.zeros([y.length]);
-
-
-
+		// init code in svm.data for now
+		return svm;
 	}
 
 	svm.data = function(data) {
@@ -28,25 +31,228 @@ function makeSVM() {
 			x.push([d.x1, d.x2]);
 		});
 
-		data.A.data.forEach( d => {
+		data.B.data.forEach( d => {
 			y.push(-1);
 			x.push([d.x1, d.x2]);
 		});
 
+		// reinitialize parameters
+		alpha = math.zeros([y.length]);
+
+		b = 0;
+		counter = 0;
+
+        var kernelList = {
+                          "linear": linearKernel, 
+                          "gaussian": gaussianKernel,
+                         };
+
+		svm.kernel = kernelList[kernelName];
+
+		radius = radiusSlider.value();
+		C = cSlider.value();
+
+		return svm;
+
 	}
 
-
+	// do one SMO loop (roughly following Platt 1998)
 	svm.step = function () {
 
-	}
+		counter += 1;
+
+		var debug = 0;
+
+		var flagKKT, 
+			ind1, ind2,
+			alpha2New, 
+			alpha1New,
+			alpha1NotAtBounds,
+			alpha2NotAtBounds,
+			b1, b2, H, L;
+
+		_.each(y, (val, ind2) => {
+
+			var x2 = x[ind2],
+				y2 = y[ind2],
+				fx2 = wDotX(x2) - b;
+				alpha2 = alpha[ind2];
+
+			flagKKT = (alpha2 > 0 && y2*fx2 > (1 + tol)) + 
+					  (alpha2 < C && y2*fx2 < (1 - tol));
+
+			if (!flagKKT) {
+				if (debug) console.log(`KKT okay at ${ind2}`);
+				return;
+			}
+
+			ind1 = _.random(0, y.length-1);
+
+			if (ind2===ind1) return;
+
+			var y1 = y[ind1],
+				x1 = x[ind1], 
+				fx1 = wDotX(x1) - b,
+				alpha1 = alpha[ind1],
+				dot12 = svm.kernel(x1, x2),
+				dot11 = svm.kernel(x1, x1),
+				dot22 = svm.kernel(x2, x2);
+
+			// attempt to update alpha2
+			var denom = 2*dot12 - dot11 - dot22;
+
+			// if denom greater than zero, punt (full SMO algo handles this)
+			if (denom >= 0) {
+				if (debug) console.log(`denom > 0 at ${ind1}, ${ind2}`);
+				return;
+			}
+			
+			// new alpha2
+			alpha2New = alpha2 - y2 * ((fx1 - y1) - (fx2 - y2)) / denom;	
+			
+			// bounds on alpha2
+			H = y1===y2 ? d3.min([C, alpha1 + alpha2]) : d3.min([C, C + alpha2 - alpha1]);
+			L = y1===y2 ? d3.max([0, alpha1 + alpha2 - C]) : d3.max([0, alpha2 - alpha1]);
+
+			// in SMO pseudocode, but don't understand this
+			if (Math.abs(L - H) < tol) return;
+
+			// clip alpha2
+			if (alpha2New > H) alpha2New = H;
+			if (alpha2New < L) alpha2New = L;
+
+			// clamp to bounds 
+			if (alpha2New < (0 + tol)) alpha2New = 0;
+			if (alpha2New > (C - tol)) alpha2New = C;
+
+			// if alpha2New is unchanged - not sure this is quite right
+			if (Math.abs(alpha2New - alpha2) < tol) return;
+
+			// update alpha1
+			alpha1New = alpha1 + y1*y2 * (alpha2 - alpha2New);
+
+			// update b
+			alpha1NotAtBounds = alpha1New > 0 && alpha1New < C;
+			alpha2NotAtBounds = alpha2New > 0 && alpha2New < C;
+
+			b1 = b + (wDotX(x1) - b - y1)
+			       + y1*(alpha1New - alpha1)*dot11
+			       + y2*(alpha2New - alpha2)*dot12;		
+			
+			b2 = b + (wDotX(x2) - b - y2)
+			       + y1*(alpha1New - alpha1)*dot12
+			       + y2*(alpha2New - alpha2)*dot22;	
+
+		    b = (b1 + b2)/2;
+
+			if (alpha1NotAtBounds) b = b1;
+			if (alpha2NotAtBounds) b = b2;
+
+			// log new alphas
+			alpha[ind1] = alpha1New;
+			alpha[ind2] = alpha2New;
+
+		});
+
+		if (debug) {
+			console.log(alpha);
+			console.log(b);
+		}
+
+		return svm;
+
+	} // svm.step
+
 
 	// classifier value 
-	svm.p = function () {
+	svm.classifyPoint = function (xThis) {
 
+		return {p: wDotX(xThis) - b, domain: [-1, 0, 1]};
+	}
+
+	svm.radius = function (val) {
+		if (!arguments.length) return radius;
+		radius = val;
+		return svm;
 	}
 
 	// draw the options
-	svm.loadOptions () {
+	svm.loadOptions = function (div) {
+
+		div = d3.select(div);
+        div.selectAll("div, input, span").remove();
+
+        // select optz method buttons
+        var kernelDiv = div.append("div").attr("id", "select-kernel-container");
+
+        //linear kernel
+        kernelDiv.append("div")
+                       .attr("class", "plot-button select-kernel")
+                       .text("Linear kernel")
+                       .on("click", function () {
+                          switchActiveButton(this, ".select-kernel");
+                          kernelName = "linear";
+                       });
+
+        //gaussian kernel
+        kernelDiv.append("div")
+                       .attr("class", "plot-button select-kernel")
+                       .text("Gaussian kernel")
+                       .on("click", function () {
+                          switchActiveButton(this, ".select-kernel");
+                          kernelName = "gaussian";
+                       });
+
+        radiusSlider = new Slider(div.append("div").node(), "Radius", [1,100], 
+        	function (slider) { 
+        		APP.player.init(); 
+        	});
+
+        radiusSlider.value(radius);
+
+        cSlider = new Slider(div.append("div").node(), "C", [0,30], 
+        	function (slider) { 
+        		APP.player.init(); 
+        	});
+
+        cSlider.value(C);
+
+		return svm;
 
 	}
+
+	// dot product of two 1xn vectors
+	function dot (a, b) {
+
+		var dp = 0;
+
+		_.each(a, (val, i) => dp += a[i]*b[i]);
+
+		return dp;
+	}
+
+
+	function linearKernel (a, b) {
+		return dot(a, b);
+	}
+
+	function gaussianKernel (a, b) {
+
+		var dab = _.map(a, (val, i) => a[i] - b[i]);
+
+		return Math.exp(-dot(dab, dab) / radius);
+	}
+
+	function wDotX (xThis) {
+
+		var s = 0;
+
+		_.each(y, (val, i) => {
+			s += alpha[i] * y[i] * svm.kernel(xThis, x[i]);
+		});
+
+		return s;
+	}
+
+return svm;
 }

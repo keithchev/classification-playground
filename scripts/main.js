@@ -5,81 +5,14 @@
     APP.plot = makePlot().init();
 
     var data = {
-                A: {
-                    std: 1,
-                    clickPoints: [],
-                   },
-                B: {
-                    std: 1,
-                    clickPoints: [],
-                   },
+                A: {},
+                B: {},
                 type: "blobs",
-                N: 10,
+                N: 50,
+                noise: 0,
               };
 
     APP.data = data;
-
-
-    function makeGaussBlobData (data) {
-
-      var mean = {
-                  A: {x1: -2, x2: -2}, 
-                  B: {x1: 2, x2: 2}
-                 };
-
-      ["A", "B"].forEach( name => {
-
-        data[name].data = _.zip(randn(data.N), randn(data.N)).map(r => { 
- 
-          var d = {
-                    x1: r[0] * data[name].std + mean[name].x1, 
-                    x2: r[1] * data[name].std + mean[name].x2
-                  };
-
-          return d;
-        });
-      });
-
-      return data;
-
-    }
-
-    function makeXORData (data) {
-
-      var scale = 5;
-
-      data.A.data = [];
-      data.B.data = [];
-
-      for (i = 0; i < data.N; i++) {
-
-        data.A.data.push(randu2d(0, scale, 0, scale));
-        data.A.data.push(randu2d(0, -scale, 0, -scale));
-        data.B.data.push(randu2d(0, -scale, 0, scale));
-        data.B.data.push(randu2d(0, scale, 0, -scale));
-      }
-
-
-      function randu2d (xmin, xmax, ymin, ymax) {
-
-        var precision = 1e5;
-
-        return {
-          x1: _.random(0, precision)/precision * (xmax-xmin) + xmin, 
-          x2: _.random(0, precision)/precision * (ymax-ymin) + ymin
-        };
-
-      }
-
-    }
-
-    function makeCircleData (data) {
-
-    }
-
-    function makeSpiralData (data) {
-
-    }
 
 
 
@@ -92,13 +25,11 @@
         this.stopFlag = false;
 
         // model names to closures
-        this.modelList = {"logistic": makeLogistic, "svd": makeSVD, "kmeans": makeKMeans};
+        this.modelList = {"logistic": makeLogistic, "svm": makeSVM, "kmeans": makeKMeans};
 
       }
 
       init () {
-
-        // model.init() must be called before .data()
 
         APP.model = APP.model.init().data(APP.data);
 
@@ -126,9 +57,13 @@
         }, 0);
       }
 
-      stop () { this.stopFlag = true;  }
+      stop () { 
+        this.stopFlag = true;  
+      }
 
-      reset () { APP.model = APP.model.init(); }
+      reset () { 
+        APP.model = APP.model.init(); 
+      }
 
       step() {
         if (this.started) return;
@@ -136,74 +71,94 @@
         APP.plot.drawModel();
       }
 
-      // set the callback to run when starting or stopping 
+      // the callback to run when starting or stopping 
       onStartStop (callback) {
         this.callback = callback;
       }
     }
-    
 
     // select mouse mode buttons
-    d3.selectAll("#mouse-pan, #mouse-edit").on("click", function () { 
-      switchActiveButton(this, "#mouse-pan, #mouse-edit");
-      APP.mouseMode = d3.select(this).attr("id").split("-")[1];
+    d3.selectAll("#mouse-edit").on("click", function () { 
+      switchActiveButton(this, "#mouse-edit");
+      APP.mouseMode = "edit";
     });
 
     // reset plot
     d3.select("#reset-plot").on("click", function () {  APP.plot.reset(); });
 
-    // select class buttons
-    d3.selectAll(".select-class").on("click", function () { 
-      switchActiveButton(this, ".select-class");
-      APP.className = _.last(d3.select(this).attr("id").split("-")).toUpperCase();
-    });
+    // --- DATA CONTROLS --- //
 
     d3.selectAll(".select-data").on("click", function () { 
       switchActiveButton(this, ".select-data");
       APP.data.type = _.last(d3.select(this).attr("id").split("-"));
       makeData();
       APP.plot.updateData();
-    })
+      if (APP.model) APP.player.init();
+    });
 
-    // class std dev slider
-    d3.select("#slider-std").on("input", function () { 
-      APP.data[APP.className].std = +this.value/100.; 
-      makeData(); 
+    // buttons to select class to edit
+    d3.selectAll(".select-class").on("click", function () { 
+      switchActiveButton(this, ".select-class");
+      APP.className = _.last(d3.select(this).attr("id").split("-")).toUpperCase();
+    });
+
+    // add a point 
+    d3.select("#add-point").on("click", function () { 
+
+      var point = APP.plot.getLastClickPos();
+
+      APP.data[APP.className].data.push({x1: point[0], x2: point[1]});
       APP.plot.updateData(); 
+
+      if (APP.model) APP.player.init();
+
     });
 
-    // add a control point 
-    d3.select("#add-control-point").on("click", function () { 
-      APP.data[APP.className].clickPoints.push(APP.plot.getLastClickPos());
+    // remove nearest point
+    d3.select("#remove-point").on("click", function () { 
+
+      var point = APP.plot.getLastClickPos();
+
+      var dist  = APP.data[APP.className].data.map(d => math.norm(math.subtract([d.x1, d.x2], point)));
+
+      APP.data[APP.className].data.splice(_.indexOf(dist, _.min(dist)), 1);
+      APP.plot.updateData(); 
+
+      if (APP.model) APP.player.init();
+
     });
 
-    // remove nearest control point
-    d3.select("#remove-control-point").on("click", function () { 
-
-      APP.data[APP.className].clickPoints = removeControlPoint(APP.data[APP.className].means, APP.plot.getLastClickPos());
-
-      function removeControlPoint(pointList, point) {
-        var d = pointList.map(function (p) { return math.norm(math.subtract(p, point)); });
-        pointList.splice(_.indexOf(d, _.min(d)), 1);
-        return pointList;
+    // noise slider (arguments: node, label, range, callback(sliderNode))
+    APP.noiseSlider = new Slider(d3.select("#slider-noise-container").node(), "Noise", [0, 10], 
+      function (val) {
+        APP.data.noise = val;
+        makeData(); 
+        APP.plot.updateData(); 
+        if (APP.model) APP.player.init();
       }
-    });
+    );
 
+    APP.noiseSlider.value(0);
+
+
+    // --- SELECT MODEL CONTROLS --- //
 
     // select logistic
     d3.select("#select-logistic").on("click", function () { 
       switchActiveButton(this, ".select-model");
       APP.model = makeLogistic();
-      APP.model.loadOptions(d3.select("#model-options-container"));
+      APP.model.loadOptions(d3.select("#model-options-container").node());
     });
 
     // select SVM
     d3.select("#select-svm").on("click", function () { 
       switchActiveButton(this, ".select-model");
       APP.model = makeSVM();
-      APP.model.loadOptions(d3.select("#model-options-container"));
+      APP.model.loadOptions(d3.select("#model-options-container").node());
     });
 
+
+    // --- PLAYER CONTROLS --- //
 
     APP.player = new Player();
 
@@ -222,6 +177,7 @@
     makeData(); 
     APP.plot.updateData();
 
+
     function makeData() {
 
       var dataTypeToFunc = { "blobs": makeGaussBlobData,
@@ -229,15 +185,81 @@
                              "circle": makeCircleData, 
                              "spiral": makeSpiralData };
 
-      data = dataTypeToFunc[APP.data.type](APP.data);
+      APP.data = dataTypeToFunc[APP.data.type](APP.data);
+
+    }
+
+    function makeGaussBlobData (data) {
+
+      var mean = {
+                  A: {x1: -2, x2: -2}, 
+                  B: {x1: 2, x2: 2}
+                 };
+
+      var std = 1;
+
+      ["A", "B"].forEach( name => {
+
+        data[name].data = _.zip(randn(data.N), randn(data.N)).map(r => { 
+ 
+          var d = {
+                    x1: r[0] * (std + data.noise) + mean[name].x1, 
+                    x2: r[1] * (std + data.noise) + mean[name].x2
+                  };
+
+          return d;
+        });
+      });
+
+      return data;
+
+    }
+
+    function makeXORData (data) {
+
+      var scale = 5;
+
+      var noise = data.noise;
+
+      data.A.data = [];
+      data.B.data = [];
+
+      for (i = 0; i < data.N; i++) {
+
+        data.A.data.push(randu2d( 0 - noise, scale + noise,  0 - noise, scale + noise ));
+        data.A.data.push(randu2d( -scale-noise, 0 + noise,  -scale - noise, 0 + noise ));
+        data.B.data.push(randu2d( -scale - noise, 0 + noise, 0 - noise, scale + noise ));
+        data.B.data.push(randu2d( 0 - noise, scale + noise, -scale - noise, 0 + noise ));
+      }
+
+      return data;
+
+
+      function randu2d (xmin, xmax, ymin, ymax) {
+
+        var precision = 1e5;
+
+        return {
+          x1: _.random(0, precision)/precision * (xmax-xmin) + xmin, 
+          x2: _.random(0, precision)/precision * (ymax-ymin) + ymin
+        };
+
+      }
+
+    }
+
+    function makeCircleData (data) {
+
+    }
+
+    function makeSpiralData (data) {
 
     }
 
 
-    // placeholder closures for SVD and kmeans
-    function makeSVD () {}
-    function makeKMeans () {}
 
+    // placeholder closures for and kmeans
+    function makeKMeans () {}
 
 
     function makePlot() {
@@ -417,19 +439,21 @@
 
       plot.drawModel = function () {
 
-        var pScale = d3.scaleLinear().range(["#66f", "#f66"]).domain([0,1]);
+        classf = APP.model.classifyPoint([0,0]);
+
+        var pScale = d3.scaleLinear().range(["#66f", "#fff", "#f66"]).domain(classf.domain);
 
         var x1Grid = d3.range(x1Scale.domain()[0], x1Scale.domain()[1], .5);
         var x2Grid = d3.range(x2Scale.domain()[0], x2Scale.domain()[1], .5);
 
-        var width = Math.abs(x1Scale(x1Grid[1]) - x1Scale(x1Grid[0]));
+        var width  = Math.abs(x1Scale(x1Grid[1]) - x1Scale(x1Grid[0]));
         var height = Math.abs(x2Scale(x2Grid[1]) - x2Scale(x2Grid[0]));
 
         var heatmapTiles = [];
 
         x1Grid.map( function (x1) {
           x2Grid.map( function (x2) {
-            heatmapTiles.push({"x1": x1, "x2": x2, "p": APP.model.p([x1, x2])});
+            heatmapTiles.push({"x1": x1, "x2": x2, "p": APP.model.classifyPoint([x1, x2]).p});
           });
         });
 

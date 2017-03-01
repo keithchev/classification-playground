@@ -1,4 +1,58 @@
     
+    class Slider {
+
+      constructor (container, label, range, callback) {
+
+        if (!callback) callback = val => null;
+
+        var sliderMin = 0;
+        var sliderMax = 100;
+
+        d3.select(container)
+          .append("span")
+          .attr("class", "slider-label")
+          .text(label);
+
+
+        this.sliderValToVal = sliderVal => range[0] + (range[1] - range[0]) * sliderVal/sliderMax;
+
+        this.valToSliderVal = val =>  Math.round(sliderMax*(val - range[0]) / (range[1] - range[0]));
+
+        this.slider = d3.select(container)
+				        .append("input")
+				        .attrs({type: "range", min: sliderMin, max: sliderMax, class: "parameter-slider"});
+
+        this.textbox = d3.select(container)
+        				 .append("input")
+        				 .attrs({type: "text", class: "parameter-textbox"});
+
+        var this_ = this;
+
+		this.slider.on("input", function () {
+			this_.textbox.property("value", this_.sliderValToVal(this_.slider.node().value));
+			callback(this_.value()); 
+		});
+
+		this.textbox.on("input", function () {
+			this_.slider.property("value", this_.valToSliderVal(this_.textbox.node().value));
+			callback(this_.value());
+		})
+
+      }
+
+      value (val) {
+
+        if (!arguments.length) return +this.textbox.node().value;
+
+        this.slider.property("value", `${this.valToSliderVal(val)}`);
+        this.textbox.property("value", `${val}`);
+
+      }
+
+
+
+    }
+
 
     function switchActiveButton(buttonThis, buttonClass) {
       d3.selectAll(buttonClass).classed("plot-button-active", false);
