@@ -1,19 +1,16 @@
 
     // global object
-    APP = {};
+    var APP = {};
 
     APP.plot = makePlot().init();
 
-    var data = {
+    APP.data = {
                 A: {},
                 B: {},
                 type: "blobs",
                 N: 10,
                 noise: 0,
               };
-
-    APP.data = data;
-
 
 
     class Player {
@@ -71,14 +68,11 @@
       }
     }
 
-    // // select mouse mode buttons
-    // d3.selectAll("#mouse-edit").on("click", function () { 
-    //   switchActiveButton(this, "#mouse-edit");
-    //   APP.mouseMode = "edit";
-    // });
 
     // reset plot
-    d3.select("#reset-plot").on("click", function () {  APP.plot.reset(); });
+    d3.select("#reset-plot").on("click", function () {  
+      APP.plot.reset(); 
+    });
 
 
     // --- DATA CONTROLS --- //
@@ -141,7 +135,6 @@
         APP.data.noise = val;
         makeData(); 
         updateData();
-
       }
     );
 
