@@ -3,42 +3,64 @@ function makeSVM() {
 	var data, 			// data structure 
 	    x, y, 			// feature array x and response vector y
 	    alpha, b,		// lagrange multipliers and threshold
+
 	    C = 1, 			// nonseparability penalty		
 	    cSlider,		// slider for C (see svm.load)
-	    radius = 3,		// gaussian kernel radius
-	    radiusSlider,	// slider for radius (see svm.load)
+
+	    gaussianRadius = 3,		// gaussian kernel radius
+	    gaussianRadiusSlider,	// slider for radius (see svm.load)
+
+	    polynomialOffset = 1,	// offset for polynomial kernel
+	    polynomialOffsetSlider,	// offset slider
+	    polynomialOrder = 3, 	// polynomial kernel order
+	    polynomialOrderSlider,  // order slider
+
 	    counter = 0,	// step counter
 	    tol = .001,		// hard coded tolerance
-	    kernelName = "linear";
+
+	    kernelName = "linear"; // default kernel
+
+	var featureVector = new FeatureVector();
 	
 
 	function svm () {}
 
 
-	svm.data = function(data) {
+	svm.data = function(val, doNotReset) {
 
 		if (!arguments.length) return data;
+
+		data = val;
+
+        // if the feature function hasn't been defined
+        if (!svm.featureFunction) return svm;
 
 		x = [];
 		y = [];
 
 		data.A.data.forEach( d => {
 			y.push(1);
-			x.push([d.x1, d.x2]);
+			x.push(svm.featureFunction([d.x1, d.x2]));
 		});
 
 		data.B.data.forEach( d => {
 			y.push(-1);
-			x.push([d.x1, d.x2]);
+			x.push(svm.featureFunction([d.x1, d.x2]));
 		});
 
-		// must reset whenever data is changed!
-		svm.reset();
+		// must reset whenever data is changed without svm.reset called
+		if (!doNotReset) svm.reset();
 
 		return svm;
 	}
 
 	svm.reset = function () {
+
+		// make the feature function
+		svm.featureFunction = featureVector.vector();
+
+		// reload the data without resetting (necessary if feature function has changed)
+		svm.data(data, true);
 
 		// reinitialize parameters
 		alpha = math.zeros([y.length]);
@@ -49,13 +71,16 @@ function makeSVM() {
         var kernelList = {
                           "linear": linearKernel, 
                           "gaussian": gaussianKernel,
+                          "polynomial": polynomialKernel,
                          };
 
 		svm.kernel = kernelList[kernelName];
 
 		C = cSlider.value();
 
-		radius = radiusSlider.value();
+		gaussianRadius   = gaussianRadiusSlider.value();
+		polynomialOffset = polynomialOffsetSlider.value();
+		polynomialOrder  = polynomialOrderSlider.value();
 
 		return svm;
 
@@ -178,9 +203,9 @@ function makeSVM() {
 		return [-1, 1];
 	}
 
-	svm.radius = function (val) {
-		if (!arguments.length) return radius;
-		radius = val;
+	svm.gaussianRadius = function (val) {
+		if (!arguments.length) return gaussianRadius;
+		gaussianRadius = val;
 		return svm;
 	}
 
@@ -190,13 +215,16 @@ function makeSVM() {
 		div = d3.select(div);
         div.selectAll("div, input, span").remove();
 
+        // draw the feature vector selection divs
+        featureVector.draw(div.node(), () => { if (APP.player) APP.player.reset(); });
+
         // select optz method buttons
         var kernelDiv = div.append("div").attr("id", "select-kernel-container");
 
         //linear kernel
         kernelDiv.append("div")
                        .attr("class", "plot-button select-kernel")
-                       .text("Linear kernel")
+                       .text("Linear")
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "linear";
@@ -207,25 +235,50 @@ function makeSVM() {
         //gaussian kernel
         kernelDiv.append("div")
                        .attr("class", "plot-button select-kernel")
-                       .text("Gaussian kernel")
+                       .text("Gaussian")
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "gaussian";
 	                      if (APP.player) APP.player.reset(); 
                        });
 
-        radiusSlider = new Slider(div.append("div").node(), "Radius", [1, 30], 
+        // polynomial kernel
+        kernelDiv.append("div")
+                       .attr("class", "plot-button select-kernel")
+                       .text("Polynomial")
+                       .on("click", function () {
+                          switchActiveButton(this, ".select-kernel");
+                          kernelName = "polynomial";
+	                      if (APP.player) APP.player.reset(); 
+                       });
+
+        // gaussianRadius slider for gaussian kernel
+        gaussianRadiusSlider = new Slider(div.append("div").node(), "Gaussian radius", [1, 10], 
         	function (slider) { 
         		if (APP.player) APP.player.reset(); 
         	});
+        gaussianRadiusSlider.value(gaussianRadius);
 
-        radiusSlider.value(radius);
-
-        cSlider = new Slider(div.append("div").node(), "C", [.01, 15], 
+        // offset slider for polynomial
+        polynomialOffsetSlider = new Slider(div.append("div").node(), "Polynomial offset", [0, 10], 
         	function (slider) { 
         		if (APP.player) APP.player.reset(); 
         	});
+        polynomialOffsetSlider.value(polynomialOffset);
 
+        // order slider for polynomial
+        polynomialOrderSlider = new Slider(div.append("div").node(), "Polynomial order", [1, 6], 
+        	function (slider) { 
+        		if (APP.player) APP.player.reset(); 
+        	});
+        polynomialOrderSlider.value(polynomialOrder);
+
+
+        // all kernels: C 
+        cSlider = new Slider(div.append("div").node(), "C", [.01, 10], 
+        	function (slider) { 
+        		if (APP.player) APP.player.reset(); 
+        	});
         cSlider.value(C);
 
 		return svm;
@@ -251,7 +304,12 @@ function makeSVM() {
 
 		var dab = _.map(a, (val, i) => a[i] - b[i]);
 
-		return Math.exp(-dot(dab, dab) / radius);
+		return Math.exp(-dot(dab, dab) / gaussianRadius);
+	}
+
+	function polynomialKernel (a, b) {
+
+		return Math.pow( (dot(a, b) + polynomialOffset), polynomialOrder);
 	}
 
 	function wDotX (xThis) {

@@ -1,6 +1,9 @@
 @link-color: #4682b4;
 @header-bgcolor: #fff;
 
+@light-blue: rgb(220, 235, 245);
+@dark-blue: rgb(170, 200, 230);
+
 @orange: #ffd040;
 @lgray: #eee;
 @dgray: #333;
@@ -13,6 +16,8 @@
 @button-color-selected: #ddd;
 
 @debug-border: 0px;
+
+@button-group-pad: 5px;
 
 .main-font {
   font-family: "Roboto", sans-serif; 
@@ -47,7 +52,19 @@ a:visited { color: @link-color; text-decoration: none; }
 path { shape-rendering: auto; }
 rect { shape-rendering: crispEdges; }
 
-.container {max-width: 950px; }
+#main-container {
+  padding-left: 30px;
+}
+
+#plot-container {
+  padding-left: 0px;
+}
+
+
+#controls-container {
+  margin-top: -20px;
+  padding-bottom: 50px;
+}
 
 .text-header {
   font-size: 16px;
@@ -68,6 +85,8 @@ rect { shape-rendering: crispEdges; }
 
 
 .button-group {
+  padding-top: @button-group-pad;
+  padding-bottom: @button-group-pad;
 }
 
 .plot-button {
@@ -75,24 +94,28 @@ rect { shape-rendering: crispEdges; }
   cursor: pointer;
   display: inline-block;
   margin-right: 10px;
-  color: @link-color;
-  &:hover { color: @link-color + #333; }
+  border-bottom: 1px solid #333;
+
+  &:hover { background-color: @light-blue; }
+  &:active { color: #999; }
 }
 
 .plot-button-label {
   width: 20%;
   display: inline-block;
   margin-right: 10px;
+  font-weight: bold;
 }
 
 .plot-button-active {
   font-weight: bold;
-  border-bottom: 0px solid #333;
+  background-color: @dark-blue;
+  border-bottom: 0px;
 }
 
 .hint {
-  font-size: 12px;
   display: inline-block;
+  padding-right: 15px;
 }
 
 input[type=range].parameter-slider {
@@ -108,13 +131,14 @@ input[type=text].parameter-textbox {
 }
 
 .slider-container {
-
+  padding-top: @button-group-pad;
+  padding-bottom: @button-group-pad;
 }
 
 .slider-label {
   display: inline-block;
-  width: 100px;
-  padding-right: 15px;
+  width: 130px;
+  padding-right: 10px;
 }
 
 #model-path {
@@ -125,6 +149,8 @@ input[type=text].parameter-textbox {
 
 .feature-type {
   display: inline-block;
+  padding-bottom: @button-group-pad;
+  padding-top: @button-group-pad;
 }
 
 .feature {

@@ -8,22 +8,13 @@
       // alpha and slider vars (set in .logistic.loadOptions)
       var alpha, alphaSlider;
 
+      var featureVector = new FeatureVector();
+
+      featureVector.setOffsetFlag(true);
+
       // theta is 1xn array 
       // x is a 1xm array of 1xn arrays of features (in 2D: [1, x1, x2, x1**2, x2**2, x1*x2, etc])
       // y is a 1xm array of categories (0 or 1) 
-
-      var featureTypes = [[
-                            {label: "x<sub>1</sub>",   f: x => x[0], "active": true }, 
-                            {label: "x<sub>2</sub>",   f: x => x[1], "active": true }
-                         ],[
-                            {label: "x<sub>1</sub><sup>2</sup>", f: x => x[0]*x[0], "active": false }, 
-                            {label: "x<sub>2</sub><sup>2</sup>", f: x => x[1]*x[1], "active": false }
-                         ],[
-                            {label: "x<sub>1</sub>*x<sub>2</sub>", f: x => x[0]*x[1], "active": false }
-                         ],[
-                            {label: "sin(x<sub>1</sub>)", f: x => Math.sin(x[0]), "active": false },
-                            {label: "sin(x<sub>2</sub>)", f: x => Math.sin(x[1]), "active": false }
-                        ]];
 
 
       function logistic () {}
@@ -85,7 +76,7 @@
         logistic.step = stepFunctions["stochastic"];
 
         // make the feature function using currently selected features
-        logistic.featureFunction = makeFeatureFunction();
+        logistic.featureFunction = featureVector.vector();
 
         // reconstruct the feature vectors from the data
         logistic.data(data);
@@ -103,24 +94,6 @@
         // random theta
         theta = math.multiply(randn(d3.selectAll(".feature.plot-button-active").data().length + 1), 10);
       }
-
-      // construct the function to generate feature vector for [x1,x2] points
-      function makeFeatureFunction () {
-
-        var selectedFeatures = d3.selectAll(".feature.plot-button-active").data();
-
-        return function (x) {
-
-          // offset/bias term  
-          var featureRow = [1];
-          
-          // add currently selected feature functions (x1, x1^2, etc)
-          selectedFeatures.map( feature => featureRow.push(feature.f(x)) );
-
-          return featureRow;
-        };
-
-      };
 
 
       logistic.data = function(val) {
@@ -156,21 +129,8 @@
         div = d3.select(div);
         div.selectAll("div, input, span").remove();
 
-        var featureTypeDivs = div.append("div")
-                                 .attr("id", "select-features-container")
-                                 .selectAll("div").data(featureTypes)
-                                 .enter().append("div")
-                                 .attr("class", "feature-type");
-
-        featureTypeDivs.selectAll("div").data(featureType => featureType)
-                       .enter().append("div")
-                       .attr("class", "plot-button feature")
-                       .html(d => d.label)
-                       .on("click", function (d) {
-                          d3.select(this).classed("plot-button-active", !d3.select(this).classed("plot-button-active"));
-                          if (APP.player) APP.player.reset(); 
-                        })
-                       .classed("plot-button-active", d => d.active);
+        // draw the feature vector selection divs
+        featureVector.draw(div.node(), () => { if (APP.player) APP.player.reset(); });
 
 
         // // select optz method buttons

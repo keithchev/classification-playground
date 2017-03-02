@@ -59,6 +59,87 @@ var Slider = (function () {
 })();
 
 
+var FeatureVector = (function () {
+
+	class FeatureVector {
+
+		constructor () {
+
+			this.featureTypes = [[
+			        {label: "x<sub>1</sub>",   f: x => x[0], "active": true }, 
+			        {label: "x<sub>2</sub>",   f: x => x[1], "active": true }
+			     ],[
+			        {label: "x<sub>1</sub><sup>2</sup>", f: x => x[0]*x[0], "active": false }, 
+			        {label: "x<sub>2</sub><sup>2</sup>", f: x => x[1]*x[1], "active": false }
+			     ],[
+			        {label: "x<sub>1</sub>*x<sub>2</sub>", f: x => x[0]*x[1], "active": false }
+			     ],[
+			        {label: "sin(x<sub>1</sub>)", f: x => Math.sin(x[0]), "active": false },
+			        {label: "sin(x<sub>2</sub>)", f: x => Math.sin(x[1]), "active": false }
+			    ]];
+
+		    this.useOffset = false;
+
+		}
+
+		setOffsetFlag (flag) {
+			this.useOffset = flag;
+		}
+
+		draw (container, callback) {
+
+	        var featureTypeDivs = d3.select(container)
+	        						.append("div")
+	                                .attr("id", "select-features-container")
+	                                .selectAll("div").data(this.featureTypes)
+	                                .enter().append("div")
+	                                .attr("class", "feature-type");
+
+	        featureTypeDivs.selectAll("div").data(featureType => featureType)
+	                       .enter().append("div")
+	                       .attr("class", "plot-button feature")
+	                       .html(d => d.label)
+	                       .on("click", function () {
+	                          	d3.select(this).classed("plot-button-active", !d3.select(this).classed("plot-button-active"));
+	                        	callback(); 
+	                        })
+	                       .classed("plot-button-active", d => d.active);
+
+		}
+		
+		// construct the function to generate a feature vector for a point x = [x1,x2] 
+		vector () {
+
+			var selectedFeatures = d3.selectAll(".feature.plot-button-active").data();
+			var offsetFlag = this.useOffset;
+
+			return function (x) {
+
+				var featureList = offsetFlag ? [1] : [];
+
+				// add currently selected feature functions (x1, x1^2, etc)
+				selectedFeatures.map( feature => featureList.push(feature.f(x)) );
+
+				return featureList;
+
+			}
+		}
+	}
+
+	return FeatureVector;
+
+})();
+
+
+// ** copied from MBTA viz **
+// move an SVG selection to the front
+d3.selection.prototype.moveToFront = function () {
+	return this.each(function () {
+	  this.parentNode.appendChild(this);
+	});
+};
+
+
 function switchActiveButton(buttonThis, buttonClass) {
   d3.selectAll(buttonClass).classed("plot-button-active", false);
   d3.select(buttonThis).classed("plot-button-active", true);

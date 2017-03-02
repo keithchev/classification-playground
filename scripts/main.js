@@ -8,7 +8,7 @@
                 A: {},
                 B: {},
                 type: "blobs",
-                N: 50,
+                N: 10,
                 noise: 0,
               };
 
@@ -136,7 +136,7 @@
     });
 
     // noise slider (arguments: node, label, range, callback(sliderNode))
-    APP.noiseSlider = new Slider(d3.select("#slider-noise-container").node(), "Noise", [0, 10], 
+    APP.noiseSlider = new Slider(d3.select("#slider-noise-container").node(), "Noise", [0, 5], 
       function (val) {
         APP.data.noise = val;
         makeData(); 
@@ -146,7 +146,7 @@
     );
 
     // N slider (arguments: node, label, range, callback(sliderNode))
-    APP.numSlider = new Slider(d3.select("#slider-num-container").node(), "Num points", [5, 100], 
+    APP.numSlider = new Slider(d3.select("#slider-num-container").node(), "Number of points", [5, 50], 
       function (val) {
         APP.data.N = val;
         makeData(); 
@@ -154,8 +154,8 @@
       }
     );
 
-    APP.noiseSlider.value(0);
-    APP.numSlider.value(10);
+    APP.noiseSlider.value(APP.data.noise);
+    APP.numSlider.value(APP.data.N);
 
     // --- SELECT MODEL CONTROLS --- //
 
@@ -185,6 +185,7 @@
 
     APP.player.onStartStop( function(isPlaying) { 
       d3.select("#start-model").text( function () { return isPlaying ? "Stop" : "Start" });
+      d3.select("#start-model").classed("plot-button-active", isPlaying);
     });
 
     d3.select("#start-model").on("click", () => APP.player.startStop());
@@ -292,8 +293,8 @@
           svg, svgG;
 
       var pad = 15, 
-          plotWidth = 400, 
-          plotHeight = 400;
+          plotWidth = 350, 
+          plotHeight = 350;
 
       var transformLast = {x:0, y:0, k: 1};
 
@@ -363,7 +364,7 @@
                  .selectAll(".scatter-dot-A").data(APP.data.A.data);
 
         dots.enter().append("circle")
-            .attrs({"class": "scatter-dot-A", r: 3, "fill": "#6666ff"})
+            .attrs({"class": "scatter-dot-A", r: 3, "fill": "#ff6666"})
           .merge(dots)
             .attr("cx", d => x1Scale(d.x1))
             .attr("cy", d => x2Scale(d.x2));
@@ -375,7 +376,7 @@
                  .selectAll(".scatter-dot-B").data(APP.data.B.data);
 
         dots.enter().append("circle")
-            .attrs({"class": "scatter-dot-B", r: 3, "fill": "#ff6666"})
+            .attrs({"class": "scatter-dot-B", r: 3, "fill": "#6666ff"})
           .merge(dots)
             .attr("cx", d => x1Scale(d.x1))
             .attr("cy", d => x2Scale(d.x2));
@@ -475,7 +476,8 @@
         // global var (referenced by plot.updateHeatmap)
         classValScale = d3.scaleLinear()
                           .range(["#66f", "#fff", "#f66"])
-                          .domain([classValDomain[0], classValMid, classValDomain[1]]);
+                          .domain([classValDomain[0], classValMid, classValDomain[1]])
+                          .clamp(true);
             
         var tileSize = (x1Scale.domain()[1] - x1Scale.domain()[0]) / numHeatmapTiles;
 
@@ -501,15 +503,21 @@
         tiles.enter().append("rect")
              .attr("class", "tile")
              .attr("x", d => x1Scale(d.x1))
-             .attr("y", d => x2Scale(d.x2))
+             .attr("y", d => x2Scale(d.x2) - tileHeight)
              .attr("width", tileWidth)
              .attr("height", tileHeight)
              .attr("fill", d => classValScale(d.classVal));
+
+         plot.updateHeatmap();
+
+         svgG.select("#scatter-dot-container").moveToFront();
 
       }
 
       // color the heatmap - assumes plot.drawHeatmap has been called
       plot.updateHeatmap = function () {
+
+        if (!APP.model) return;
 
         var tiles = svgG.selectAll(".tile");
 
