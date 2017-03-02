@@ -197,83 +197,14 @@
 
     function makeData() {
 
-      var dataTypeToFunc = { "blobs": makeGaussBlobData,
-                             "xor": makeXORData,
-                             "circle": makeCircleData, 
-                             "spiral": makeSpiralData };
+      var dataTypeToFunc = { "blobs":  toyData.blob,
+                             "xor":    toyData.XOR,
+                             "circle": toyData.circle, 
+                             "spiral": toyData.spiral };
 
       APP.data = dataTypeToFunc[APP.data.type](APP.data);
 
     }
-
-    function makeGaussBlobData (data) {
-
-      var mean = {
-                  A: {x1: -2, x2: -2}, 
-                  B: {x1: 2, x2: 2}
-                 };
-
-      var std = 1;
-
-      ["A", "B"].forEach( name => {
-
-        data[name].data = _.zip(randn(data.N), randn(data.N)).map(r => { 
- 
-          var d = {
-                    x1: r[0] * (std + data.noise) + mean[name].x1, 
-                    x2: r[1] * (std + data.noise) + mean[name].x2
-                  };
-
-          return d;
-        });
-      });
-
-      return data;
-
-    }
-
-    function makeXORData (data) {
-
-      var scale = 5;
-
-      var noise = data.noise;
-
-      data.A.data = [];
-      data.B.data = [];
-
-      for (i = 0; i < data.N; i++) {
-
-        data.A.data.push(randu2d( 0 - noise, scale + noise,  0 - noise, scale + noise ));
-        data.A.data.push(randu2d( -scale-noise, 0 + noise,  -scale - noise, 0 + noise ));
-        data.B.data.push(randu2d( -scale - noise, 0 + noise, 0 - noise, scale + noise ));
-        data.B.data.push(randu2d( 0 - noise, scale + noise, -scale - noise, 0 + noise ));
-      }
-
-      return data;
-
-
-      function randu2d (xmin, xmax, ymin, ymax) {
-
-        var precision = 1e5;
-
-        return {
-          x1: _.random(0, precision)/precision * (xmax-xmin) + xmin, 
-          x2: _.random(0, precision)/precision * (ymax-ymin) + ymin
-        };
-
-      }
-
-    }
-
-    function makeCircleData (data) {
-
-    }
-
-    function makeSpiralData (data) {
-
-    }
-
-
 
     // placeholder closures for and kmeans
     function makeKMeans () {}
@@ -295,22 +226,24 @@
 
       plot.init = function () {   
 
-        svg  = d3.select("#plot-container").append("svg").attr("width", plotWidth).attr("height", plotHeight);
+        svg  = d3.select("#plot-container")
+                 .append("svg").attrs({width: plotWidth, height: plotHeight});
+
         svgG = svg.append("g").attr("transform", `translate(${pad}, ${pad})` );
 
-        svgG.append("g").attrs({class: "axis", id: "plot-x-axis", transform: `translate(0, ${plotHeight-pad-pad} )`});
-        svgG.append("g").attrs({class: "axis", id: "plot-y-axis"});
+        svgG.append("g")
+            .attrs({class: "axis", id: "plot-x-axis", transform: `translate(0, ${plotHeight-pad-pad} )`});
+
+        svgG.append("g")
+            .attrs({class: "axis", id: "plot-y-axis"});
 
         svgG.append("g").attr("id", "scatter-dot-container");
 
-        x1Scale = d3.scaleLinear().range([0, plotWidth - pad - pad]).domain([-10, 10]);
-        x2Scale = d3.scaleLinear().range([plotHeight - pad - pad, 0]).domain([-10, 10]);
+        x1Scale = d3.scaleLinear().domain([-10, 10]).range([0, plotWidth - pad - pad]);
+        x2Scale = d3.scaleLinear().domain([-10, 10]).range([plotHeight - pad - pad, 0]);
 
         xAxis = d3.axisBottom(x1Scale).tickSize(0);
         yAxis = d3.axisLeft(x2Scale).tickSize(0);
-
-        modelLine = d3.line().x(d => x1Scale(d.x))
-                             .y(d => x2Scale(d.y));
 
 
         svg.on("click", function () { 
@@ -440,8 +373,6 @@
         svgG.selectAll(".scatter-dot-B")
             .attr("cx", d => x1Scale(d.x1))
             .attr("cy", d => x2Scale(d.x2));
-
-        // d3.select("#model-path").attr("d", modelLine(makeModelLineData()));
 
         svg.select("#plot-x-axis").call(xAxis);
         svg.select("#plot-y-axis").call(yAxis);
