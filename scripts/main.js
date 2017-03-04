@@ -9,7 +9,7 @@
                 B: {},
                 type: "blobs",
                 N: 10,
-                noise: 0,
+                noise: 1,
               };
 
 
@@ -85,18 +85,25 @@
       updateData();
     });
 
+    APP.data.type = "blobs";
+    switchActiveButton(d3.select("#select-blobs").node(), ".select-data");
+
     // buttons to select class to edit
     d3.selectAll(".select-class").on("click", function () { 
       switchActiveButton(this, ".select-class");
       APP.className = _.last(d3.select(this).attr("id").split("-")).toUpperCase();
     });
 
+    // mouse mode: pan/zoom
     d3.select("#mouse-pan").on("click", function () {
       switchActiveButton(this, ".select-mouse");
       APP.panFlag = true;
     });
 
-    // add a point 
+    APP.panFlag = true;
+    switchActiveButton(d3.select("#mouse-pan").node(), ".select-mouse");
+
+    // mouse mode: add a point 
     d3.select("#mouse-add-point").on("click", function () { 
 
       switchActiveButton(this, ".select-mouse");
@@ -112,7 +119,7 @@
       }
     });
 
-    // remove nearest point
+    // mouse mode: remove nearest point
     d3.select("#mouse-remove-point").on("click", function () { 
 
       switchActiveButton(this, ".select-mouse");
@@ -189,6 +196,16 @@
     // initialize data
     makeData(); 
     updateData();
+
+    // initialize with SVM 
+    switchActiveButton(d3.select("#select-svm").node(), ".select-model");
+    APP.model = makeSVM();
+    APP.model.load(d3.select("#model-options-container").node());
+    APP.model.data(APP.data).reset();
+    APP.plot.drawHeatmap();
+
+    // start the model solution
+    APP.player.startStop();
 
     function updateData() {
         APP.plot.updateData(); 

@@ -1,5 +1,3 @@
-var makeSVM = (function () {
-
 function makeSVM() {
 
 	var data, 			// data structure 
@@ -17,11 +15,10 @@ function makeSVM() {
 	    polynomialOrder = 3, 	// polynomial kernel order
 	    polynomialOrderSlider,  // order slider
 
-	    counter = 0,			// step counter
-	    kernelName = "linear";  // default kernel
+	    counter = 0,	// step counter
+	    tol = .001,		// hard coded tolerance
 
-	    const tol = .001;	// hardcoded tolerance
-
+	    kernelName = "linear"; // default kernel
 
 	var featureVector = new FeatureVector();
 	
@@ -94,50 +91,52 @@ function makeSVM() {
 
 		counter += 1;
 
-		let debug = 0;
+		var debug = 0;
+
+		var flagKKT, 
+			ind1, ind2,
+			alpha2New, 
+			alpha1New,
+			alpha1NotAtBounds,
+			alpha2NotAtBounds,
+			b1, b2, H, L;
 
 		_.each(y, (val, ind2) => {
 
-			let x2 = x[ind2],
+			var x2 = x[ind2],
 				y2 = y[ind2],
-				fx2 = wDotX(alpha, x, y, x2, svm.kernel) - b,
+				fx2 = wDotX(x2) - b;
 				alpha2 = alpha[ind2];
 
-			let flagKKT = (alpha2 > 0 && y2*fx2 > (1 + tol)) + 
-					 	  (alpha2 < C && y2*fx2 < (1 - tol));
+			flagKKT = (alpha2 > 0 && y2*fx2 > (1 + tol)) + 
+					  (alpha2 < C && y2*fx2 < (1 - tol));
 
 			if (!flagKKT) {
 				if (debug) console.log(`KKT okay at ${ind2}`);
 				return;
 			}
 
-			let ind1 = _.random(0, y.length-1);
+			ind1 = _.random(0, y.length-1);
 
 			if (ind2===ind1) return;
 
-			let y1 = y[ind1],
+			var y1 = y[ind1],
 				x1 = x[ind1], 
-				fx1 = wDotX(alpha, x, y, x1, svm.kernel) - b,
+				fx1 = wDotX(x1) - b,
 				alpha1 = alpha[ind1],
 				dot12 = svm.kernel(x1, x2),
 				dot11 = svm.kernel(x1, x1),
 				dot22 = svm.kernel(x2, x2);
 
 			// attempt to update alpha2
-			let denom = 2*dot12 - dot11 - dot22;
+			var denom = 2*dot12 - dot11 - dot22;
 
 			// if denom greater than zero, punt (full SMO algo handles this)
 			if (denom >= 0) {
 				if (debug) console.log(`denom > 0 at ${ind1}, ${ind2}`);
 				return;
 			}
-		
-			let alpha1New, 
-				alpha2New,
-				alpha1NotAtBounds,
-				alpha2NotAtBounds,
-				b1, b2, H, L;
-
+			
 			// new alpha2
 			alpha2New = alpha2 - y2 * ((fx1 - y1) - (fx2 - y2)) / denom;	
 			
@@ -166,11 +165,11 @@ function makeSVM() {
 			alpha1NotAtBounds = alpha1New > 0 && alpha1New < C;
 			alpha2NotAtBounds = alpha2New > 0 && alpha2New < C;
 
-			b1 = b + (fx1 - b - y1)
+			b1 = b + (wDotX(x1) - b - y1)
 			       + y1*(alpha1New - alpha1)*dot11
 			       + y2*(alpha2New - alpha2)*dot12;		
 			
-			b2 = b + (fx2 - b - y2)
+			b2 = b + (wDotX(x2) - b - y2)
 			       + y1*(alpha1New - alpha1)*dot12
 			       + y2*(alpha2New - alpha2)*dot22;	
 
@@ -197,7 +196,7 @@ function makeSVM() {
 
 	// classifier value 
 	svm.classifyPoint = function (xThis) {
-		return wDotX(alpha, x, y, xThis, svm.kernel) - b;
+		return wDotX(xThis) - b;
 	}
 
 	svm.classDomain = function () {
@@ -217,10 +216,10 @@ function makeSVM() {
         div.selectAll("div, input, span").remove();
 
         // draw the feature vector selection divs
-        featureVector.draw(div.node(), onChange);
+        featureVector.draw(div.node(), () => { if (APP.player) APP.player.reset(); });
 
         // select optz method buttons
-        let kernelDiv = div.append("div").attr("id", "select-kernel-container");
+        var kernelDiv = div.append("div").attr("id", "select-kernel-container");
 
         //linear kernel
         kernelDiv.append("div")
@@ -229,7 +228,7 @@ function makeSVM() {
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "linear";
-	                      onChange();
+	                      if (APP.player) APP.player.reset(); 
                        })
                        .classed("plot-button-active", true);
 
@@ -240,7 +239,7 @@ function makeSVM() {
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "gaussian";
-	                      onChange(); 
+	                      if (APP.player) APP.player.reset(); 
                        });
 
         // polynomial kernel
@@ -250,74 +249,79 @@ function makeSVM() {
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "polynomial";
-	                      onChange();
+	                      if (APP.player) APP.player.reset(); 
                        });
 
         // gaussianRadius slider for gaussian kernel
-        gaussianRadiusSlider = new Slider(div.append("div").node(), "Gaussian radius", [1, 10], onChange);
+        gaussianRadiusSlider = new Slider(div.append("div").node(), "Gaussian radius", [1, 10], 
+        	function (slider) { 
+        		if (APP.player) APP.player.reset(); 
+        	});
         gaussianRadiusSlider.value(gaussianRadius);
 
         // offset slider for polynomial
-        polynomialOffsetSlider = new Slider(div.append("div").node(), "Polynomial offset", [0, 10], onChange);
+        polynomialOffsetSlider = new Slider(div.append("div").node(), "Polynomial offset", [0, 10], 
+        	function (slider) { 
+        		if (APP.player) APP.player.reset(); 
+        	});
         polynomialOffsetSlider.value(polynomialOffset);
 
         // order slider for polynomial
-        polynomialOrderSlider = new Slider(div.append("div").node(), "Polynomial order", [1, 6], onChange);
+        polynomialOrderSlider = new Slider(div.append("div").node(), "Polynomial order", [1, 6], 
+        	function (slider) { 
+        		if (APP.player) APP.player.reset(); 
+        	});
         polynomialOrderSlider.value(polynomialOrder);
 
+
         // all kernels: C 
-        cSlider = new Slider(div.append("div").node(), "C", [.01, 10], onChange);
+        cSlider = new Slider(div.append("div").node(), "C", [.01, 10], 
+        	function (slider) { 
+        		if (APP.player) APP.player.reset(); 
+        	});
         cSlider.value(C);
 
-        // reset the model when anything is changed is changed
-        function onChange () {
-        	if (APP.player) APP.player.reset();
-        }
 		return svm;
+
 	}
-	return svm;
-}
 
-// dot product of two 1xn vectors
-function dot (x1, x2) {
+	// dot product of two 1xn vectors
+	function dot (a, b) {
 
-	var dp = 0;
+		var dp = 0;
 
-	for (let i = 0; i < x1.length; i++) {
-		dp += x1[i]*x2[i];
+		_.each(a, (val, i) => dp += a[i]*b[i]);
+
+		return dp;
 	}
-	return dp;
+
+
+	function linearKernel (a, b) {
+		return dot(a, b);
+	}
+
+	function gaussianKernel (a, b) {
+
+		var dab = _.map(a, (val, i) => a[i] - b[i]);
+
+		return Math.exp(-dot(dab, dab) / gaussianRadius);
+	}
+
+	function polynomialKernel (a, b) {
+
+		return Math.pow( (dot(a, b) + polynomialOffset), polynomialOrder);
+	}
+
+	function wDotX (xThis) {
+
+		var s = 0;
+
+		_.each(y, (val, i) => {
+			s += alpha[i] * y[i] * svm.kernel(xThis, x[i]);
+		});
+
+		return s;
+	}
+
+return svm;
 }
-
-
-function linearKernel (x1, x2) {
-	return dot(x1, x2);
-}
-
-function gaussianKernel (x1, x2) {
-
-	var dab = _.map(a, (val, i) => x1[i] - x2[i]);
-
-	return Math.exp(-dot(dab, dab) / gaussianRadius);
-}
-
-function polynomialKernel (x1, x2) {
-
-	return Math.pow( (dot(a, b) + polynomialOffset), polynomialOrder);
-}
-
-function wDotX (alpha, x, y, xThis, kernel) {
-
-	var s = 0;
-
-	for (let i = 0; i < alpha.length; i++) {
-		s += alpha[i] * y[i] * kernel(xThis, x[i]);
-	};
-
-	return s;
-}
-
-
-
-return makeSVM;
-})();
