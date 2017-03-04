@@ -99,7 +99,7 @@ function makeSVM() {
 
 			let x2 = x[ind2],
 				y2 = y[ind2],
-				fx2 = wDotX(x2) - b;
+				fx2 = wDotX(x2) - b,
 				alpha2 = alpha[ind2];
 
 			let flagKKT = (alpha2 > 0 && y2*fx2 > (1 + tol)) + 
@@ -122,7 +122,6 @@ function makeSVM() {
 				dot11 = svm.kernel(x1, x1),
 				dot22 = svm.kernel(x2, x2);
 
-			// attempt to update alpha2
 			let denom = 2*dot12 - dot11 - dot22;
 
 			// if denom greater than zero, punt (full SMO algo handles this)

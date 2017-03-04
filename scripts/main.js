@@ -137,7 +137,7 @@
     });
 
     // noise slider (arguments: node, label, range, callback(sliderNode))
-    APP.noiseSlider = new Slider(d3.select("#slider-noise-container").node(), "Noise", [0, 5], 
+    APP.noiseSlider = new Slider(d3.select("#slider-noise-container").node(), "Noise", [0, 2], 
       function (val) {
         APP.data.noise = val;
         makeData(); 

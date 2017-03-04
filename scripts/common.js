@@ -146,17 +146,15 @@ function switchActiveButton(buttonThis, buttonClass) {
 }
 
 
-function logit(x) { 
-	return 1/(1 + math.exp(-x)); 
-}
 
 
+
+// generate N normally distributed random variables
 function randn(N) {
 
-  // generate N normally-distributed random variables
+  const precision = 1e5;
 
   var twoPI = 2.0*Math.PI;
-  var precision  = 1e5;
   var xlist = [];
 
   var U1, U2, R, x1, x2;
@@ -176,19 +174,17 @@ function randn(N) {
     
   }
 
-  return _.first(xlist, N);
-
+return _.first(xlist, N);
 }
 
+
+// array of uniform random on [0,1]
 function randu(N) {
 
-	var precision = 1e6;
+var x = [];
 
-	var x = [];
-
-	for (i = 0; i < N; i++) {
-		x.push(_.random(0, precision)/precision);
-	}
-
-	return x;
+for (i = 0; i < N; i++) {
+  x.push(_.random(0, precision)/precision);
+}
+return x;
 }

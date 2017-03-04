@@ -17,6 +17,9 @@ var makeLogistic = (function () {
     // x is a 1xm array of 1xn arrays of features (in 2D: [1, x1, x2, x1**2, x2**2, x1*x2, etc])
     // y is a 1xm array of categories (0 or 1) 
 
+    function logit(x) { 
+      return 1/(1 + math.exp(-x)); 
+    }
 
     function logistic () {}
 
