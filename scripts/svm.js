@@ -12,13 +12,15 @@ function makeSVM() {
 
 	    polynomialOffset = 1,	// offset for polynomial kernel
 	    polynomialOffsetSlider,	// offset slider
+
 	    polynomialOrder = 3, 	// polynomial kernel order
 	    polynomialOrderSlider,  // order slider
 
-	    counter = 0,	// step counter
-	    tol = .001,		// hard coded tolerance
+	    counter = 0,			// step counter
+	    kernelName = "linear";  // default kernel
 
-	    kernelName = "linear"; // default kernel
+
+    const tol = .001;		// hard coded tolerance
 
 	var featureVector = new FeatureVector();
 	
@@ -91,36 +93,28 @@ function makeSVM() {
 
 		counter += 1;
 
-		var debug = 0;
-
-		var flagKKT, 
-			ind1, ind2,
-			alpha2New, 
-			alpha1New,
-			alpha1NotAtBounds,
-			alpha2NotAtBounds,
-			b1, b2, H, L;
+		let debug = 0;
 
 		_.each(y, (val, ind2) => {
 
-			var x2 = x[ind2],
+			let x2 = x[ind2],
 				y2 = y[ind2],
 				fx2 = wDotX(x2) - b;
 				alpha2 = alpha[ind2];
 
-			flagKKT = (alpha2 > 0 && y2*fx2 > (1 + tol)) + 
-					  (alpha2 < C && y2*fx2 < (1 - tol));
+			let flagKKT = (alpha2 > 0 && y2*fx2 > (1 + tol)) + 
+						  (alpha2 < C && y2*fx2 < (1 - tol));
 
 			if (!flagKKT) {
 				if (debug) console.log(`KKT okay at ${ind2}`);
 				return;
 			}
 
-			ind1 = _.random(0, y.length-1);
+			let ind1 = _.random(0, y.length-1);
 
 			if (ind2===ind1) return;
 
-			var y1 = y[ind1],
+			let y1 = y[ind1],
 				x1 = x[ind1], 
 				fx1 = wDotX(x1) - b,
 				alpha1 = alpha[ind1],
@@ -129,20 +123,20 @@ function makeSVM() {
 				dot22 = svm.kernel(x2, x2);
 
 			// attempt to update alpha2
-			var denom = 2*dot12 - dot11 - dot22;
+			let denom = 2*dot12 - dot11 - dot22;
 
 			// if denom greater than zero, punt (full SMO algo handles this)
 			if (denom >= 0) {
 				if (debug) console.log(`denom > 0 at ${ind1}, ${ind2}`);
 				return;
 			}
-			
+
 			// new alpha2
-			alpha2New = alpha2 - y2 * ((fx1 - y1) - (fx2 - y2)) / denom;	
+			let alpha2New = alpha2 - y2 * ((fx1 - y1) - (fx2 - y2)) / denom;	
 			
 			// bounds on alpha2
-			H = y1===y2 ? d3.min([C, alpha1 + alpha2]) : d3.min([C, C + alpha2 - alpha1]);
-			L = y1===y2 ? d3.max([0, alpha1 + alpha2 - C]) : d3.max([0, alpha2 - alpha1]);
+			let H = y1===y2 ? d3.min([C, alpha1 + alpha2]) : d3.min([C, C + alpha2 - alpha1]);
+			let L = y1===y2 ? d3.max([0, alpha1 + alpha2 - C]) : d3.max([0, alpha2 - alpha1]);
 
 			// in SMO pseudocode, but don't understand this
 			if (Math.abs(L - H) < tol) return;
@@ -159,19 +153,19 @@ function makeSVM() {
 			if (Math.abs(alpha2New - alpha2) < tol) return;
 
 			// update alpha1
-			alpha1New = alpha1 + y1*y2 * (alpha2 - alpha2New);
+			let alpha1New = alpha1 + y1*y2 * (alpha2 - alpha2New);
 
 			// update b
-			alpha1NotAtBounds = alpha1New > 0 && alpha1New < C;
-			alpha2NotAtBounds = alpha2New > 0 && alpha2New < C;
+			let alpha1NotAtBounds = alpha1New > 0 && alpha1New < C;
+			let alpha2NotAtBounds = alpha2New > 0 && alpha2New < C;
 
-			b1 = b + (wDotX(x1) - b - y1)
-			       + y1*(alpha1New - alpha1)*dot11
-			       + y2*(alpha2New - alpha2)*dot12;		
+			let b1 = b + (fx1 - y1)
+				       + y1*(alpha1New - alpha1)*dot11
+				       + y2*(alpha2New - alpha2)*dot12;		
 			
-			b2 = b + (wDotX(x2) - b - y2)
-			       + y1*(alpha1New - alpha1)*dot12
-			       + y2*(alpha2New - alpha2)*dot22;	
+			let b2 = b + (fx2 - y2)
+				       + y1*(alpha1New - alpha1)*dot12
+				       + y2*(alpha2New - alpha2)*dot22;	
 
 		    b = (b1 + b2)/2;
 
@@ -194,29 +188,14 @@ function makeSVM() {
 	} // svm.step
 
 
-	// classifier value 
-	svm.classifyPoint = function (xThis) {
-		return wDotX(xThis) - b;
-	}
-
-	svm.classDomain = function () {
-		return [-1, 1];
-	}
-
-	svm.gaussianRadius = function (val) {
-		if (!arguments.length) return gaussianRadius;
-		gaussianRadius = val;
-		return svm;
-	}
-
-	// draw the options
+	// draw the options when the model is loaded
 	svm.load = function (div) {
 
 		div = d3.select(div);
         div.selectAll("div, input, span").remove();
 
         // draw the feature vector selection divs
-        featureVector.draw(div.node(), () => { if (APP.player) APP.player.reset(); });
+        featureVector.draw(div.node(), onChange);
 
         // select optz method buttons
         var kernelDiv = div.append("div").attr("id", "select-kernel-container");
@@ -228,7 +207,7 @@ function makeSVM() {
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "linear";
-	                      if (APP.player) APP.player.reset(); 
+	                      onChange();
                        })
                        .classed("plot-button-active", true);
 
@@ -239,7 +218,7 @@ function makeSVM() {
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "gaussian";
-	                      if (APP.player) APP.player.reset(); 
+	                      onChange();
                        });
 
         // polynomial kernel
@@ -249,67 +228,68 @@ function makeSVM() {
                        .on("click", function () {
                           switchActiveButton(this, ".select-kernel");
                           kernelName = "polynomial";
-	                      if (APP.player) APP.player.reset(); 
+	                      onChange();
                        });
 
         // gaussianRadius slider for gaussian kernel
-        gaussianRadiusSlider = new Slider(div.append("div").node(), "Gaussian radius", [1, 10], 
-        	function (slider) { 
-        		if (APP.player) APP.player.reset(); 
-        	});
+        gaussianRadiusSlider = new Slider(div.append("div").node(), "Gaussian radius", [1, 10], onChange);
         gaussianRadiusSlider.value(gaussianRadius);
 
         // offset slider for polynomial
-        polynomialOffsetSlider = new Slider(div.append("div").node(), "Polynomial offset", [0, 10], 
-        	function (slider) { 
-        		if (APP.player) APP.player.reset(); 
-        	});
+        polynomialOffsetSlider = new Slider(div.append("div").node(), "Polynomial offset", [0, 10], onChange);
         polynomialOffsetSlider.value(polynomialOffset);
 
         // order slider for polynomial
-        polynomialOrderSlider = new Slider(div.append("div").node(), "Polynomial order", [1, 6], 
-        	function (slider) { 
-        		if (APP.player) APP.player.reset(); 
-        	});
+        polynomialOrderSlider = new Slider(div.append("div").node(), "Polynomial order", [1, 6], onChange);
         polynomialOrderSlider.value(polynomialOrder);
 
 
         // all kernels: C 
-        cSlider = new Slider(div.append("div").node(), "C", [.01, 10], 
-        	function (slider) { 
-        		if (APP.player) APP.player.reset(); 
-        	});
+        cSlider = new Slider(div.append("div").node(), "C", [.01, 10], onChange);
         cSlider.value(C);
+
+        function onChange () {
+    		if (APP.player) APP.player.reset(); 
+        }
 
 		return svm;
 
 	}
 
-	// dot product of two 1xn vectors
-	function dot (a, b) {
 
+	// classifier value at x
+	svm.classifyPoint = function (xThis) {
+		return wDotX(xThis) - b;
+	}
+
+	// classification thresholds for plotting
+	svm.classDomain = function () {
+		return [-1, 1];
+	}
+
+
+	//  private methods to calcualte kernels
+	// these use closure-scope parameter vars 
+
+
+	function dot (x1, x2) {
 		var dp = 0;
-
-		_.each(a, (val, i) => dp += a[i]*b[i]);
-
+		_.each(x1, (val, i) => dp += x1[i]*x2[i]);
 		return dp;
 	}
 
 
-	function linearKernel (a, b) {
-		return dot(a, b);
+	function linearKernel (x1, x2) {
+		return dot(x1, x2);
 	}
 
-	function gaussianKernel (a, b) {
-
-		var dab = _.map(a, (val, i) => a[i] - b[i]);
-
-		return Math.exp(-dot(dab, dab) / gaussianRadius);
+	function gaussianKernel (x1, x2) {
+		var delta12 = _.map(x1, (val, i) => x1[i] - x2[i]);
+		return Math.exp(-dot(delta12, delta12) / gaussianRadius);
 	}
 
-	function polynomialKernel (a, b) {
-
-		return Math.pow( (dot(a, b) + polynomialOffset), polynomialOrder);
+	function polynomialKernel (x1, x2) {
+		return Math.pow( (dot(x1, x2) + polynomialOffset), polynomialOrder);
 	}
 
 	function wDotX (xThis) {
