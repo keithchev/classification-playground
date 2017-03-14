@@ -22,7 +22,7 @@
         this.stopFlag = false;
 
         // model names to closures
-        this.modelList = {"logistic": makeLogistic, "svm": makeSVM, "kmeans": makeKMeans};
+        this.modelList = {"logistic": makeLogistic, "svm": makeSVM, "nn": makeNN};
 
       }
 
@@ -157,6 +157,7 @@
     APP.noiseSlider.value(APP.data.noise);
     APP.numSlider.value(APP.data.N);
 
+
     // --- SELECT MODEL CONTROLS --- //
 
     // select logistic
@@ -177,6 +178,16 @@
       APP.model.data(APP.data).reset();
       APP.plot.drawHeatmap();
     });
+
+    // select nn
+    d3.select("#select-nn").on("click", function () { 
+      switchActiveButton(this, ".select-model");
+      APP.model = makeNN();
+      APP.model.load(d3.select("#model-options-container").node());
+      APP.model.data(APP.data).reset();
+      APP.plot.drawHeatmap();
+    });
+
 
 
     // --- PLAYER CONTROLS --- //
@@ -223,8 +234,7 @@
 
     }
 
-    // placeholder closures for and kmeans
-    function makeKMeans () {}
+
 
 
     function makePlot() {

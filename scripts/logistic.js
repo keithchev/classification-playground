@@ -137,7 +137,7 @@ var makeLogistic = (function () {
 
       alphaSlider = new Slider(div.node(), "Learning rate", [.01, 1], 
         function (value) { 
-          if (APP.model) APP.model.alpha(value); 
+          logistic.alpha(value);
         });
 
       alphaSlider.value(.1);
@@ -146,7 +146,7 @@ var makeLogistic = (function () {
          .attr("class", "plot-button")
          .text("Randomize theta")
          .on("click", () => {
-          if (APP.model) APP.model.initTheta();
+            logistic.initTheta();
          });
 
       return logistic;

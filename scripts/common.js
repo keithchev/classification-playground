@@ -88,6 +88,8 @@ var FeatureVector = (function () {
 
 		draw (container, callback) {
 
+			var this_ = this;
+
 	        var featureTypeDivs = d3.select(container)
 	        						.append("div")
 	                                .attr("id", "select-features-container")
@@ -101,7 +103,7 @@ var FeatureVector = (function () {
 	                       .html(d => d.label)
 	                       .on("click", function () {
 	                          	d3.select(this).classed("plot-button-active", !d3.select(this).classed("plot-button-active"));
-	                        	callback(); 
+	                        	callback(this_.numFeatures()); 
 	                        })
 	                       .classed("plot-button-active", d => d.active);
 
@@ -123,6 +125,10 @@ var FeatureVector = (function () {
 				return featureList;
 
 			}
+		}
+
+		numFeatures () {
+			return d3.selectAll(".feature.plot-button-active").data().length;
 		}
 	}
 
@@ -174,7 +180,7 @@ function randn(N) {
     
   }
 
-return _.first(xlist, N);
+  return _.first(xlist, N);
 }
 
 
