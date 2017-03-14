@@ -7,8 +7,8 @@
     APP.data = {
                 A: {},
                 B: {},
-                type: "blobs",
-                N: 10,
+                type: "circle",
+                N: 50,
                 noise: 1,
               };
 
@@ -42,7 +42,9 @@
         this.stopFlag = false;
         d3.timer(() => { 
           if (this.stopFlag) return true;
-          APP.model.step();
+          for (i in _.range(10)) {
+            APP.model.step();
+          }
           APP.plot.updateHeatmap();
           return false
         }, 0);
@@ -84,9 +86,10 @@
       makeData();
       updateData();
     });
+    switchActiveButton(d3.select(`#select-${APP.data.type}`).node(), ".select-data");
 
-    APP.data.type = "blobs";
-    switchActiveButton(d3.select("#select-blobs").node(), ".select-data");
+
+    // --- mouse modes --- //
 
     // buttons to select class to edit
     d3.selectAll(".select-class").on("click", function () { 
@@ -136,6 +139,8 @@
       }
     });
 
+    // --- Sliders for N and noise --- //
+
     // noise slider (arguments: node, label, range, callback(sliderNode))
     APP.noiseSlider = new Slider(d3.select("#slider-noise-container").node(), "Noise", [0, 2], 
       function (val) {
@@ -160,33 +165,25 @@
 
     // --- SELECT MODEL CONTROLS --- //
 
-    // select logistic
-    d3.select("#select-logistic").on("click", function () { 
-      switchActiveButton(this, ".select-model");
-      APP.model = makeLogistic();
-      APP.model.load(d3.select("#model-options-container").node());
-      APP.model.data(APP.data).reset();
-      APP.plot.drawHeatmap();
+    modelList = [{id: "select-logistic", text: "Logistic", model: makeLogistic},
+                 {id: "select-svm", text: "SVM", model: makeSVM},
+                 {id: "select-nn", text: "Neural net", model: makeNN}];
 
-    });
 
-    // select SVM
-    d3.select("#select-svm").on("click", function () { 
-      switchActiveButton(this, ".select-model");
-      APP.model = makeSVM();
-      APP.model.load(d3.select("#model-options-container").node());
-      APP.model.data(APP.data).reset();
-      APP.plot.drawHeatmap();
-    });
+    d3.select("#select-model-container")
+      .selectAll(".select-model").data(modelList)
+      .enter().append("div")
+      .attr("class", "plot-button select-model")
+      .attr("id", d => d.id)
+      .text(d => d.text)
+      .on("click", function (d) {
+        switchActiveButton(this, ".select-model");
+        APP.model = d.model();
+        APP.model.load(d3.select("#model-options-container").node());
+        APP.model.data(APP.data).reset();
+        APP.plot.drawHeatmap();
+      });
 
-    // select nn
-    d3.select("#select-nn").on("click", function () { 
-      switchActiveButton(this, ".select-model");
-      APP.model = makeNN();
-      APP.model.load(d3.select("#model-options-container").node());
-      APP.model.data(APP.data).reset();
-      APP.plot.drawHeatmap();
-    });
 
 
 
@@ -208,9 +205,9 @@
     makeData(); 
     updateData();
 
-    // initialize with SVM 
-    switchActiveButton(d3.select("#select-svm").node(), ".select-model");
-    APP.model = makeSVM();
+    // initialize with NN 
+    switchActiveButton(d3.select("#select-nn").node(), ".select-model");
+    APP.model = makeNN();
     APP.model.load(d3.select("#model-options-container").node());
     APP.model.data(APP.data).reset();
     APP.plot.drawHeatmap();

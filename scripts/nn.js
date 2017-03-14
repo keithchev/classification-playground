@@ -1,18 +1,22 @@
 function makeNN() {
 
+	function nn () {}
+
+	// to do: specify output layer activation separately
+	// write efficient matrix addition/multiplication 
+	// write loss function; add to UI
+
 	var data, 				// data structure 
 	    x, y, 				// feature array x and response vector y
 	    weights, biases,	// list of weight vectors and offset vectors
 
-	    alpha = .2, 		// learning rate - updated in alphaSlider callback
+	    alpha = .1, 		// learning rate - updated in alphaSlider callback
 	    alphaSlider,		// (see nn.load)
-
-	    lambda = 0,		// regz prefactor - updated in lambdaSlider callback
+	    lambda = 0,			// regz prefactor - updated in lambdaSlider callback
 	    lambdaSlider,		// 
 
 	    counter = 0,				// step counter
 	    activationName = "tanh";   // default activations
-
 
 		var activationFuncs = {
 								logit: 
@@ -41,9 +45,6 @@ function makeNN() {
 	var architecture = makeArchitecture().list([2, 4, 2, 1]);
 
 
-	function nn () {}
-
-
 	nn.data = function(val, doNotReset) {
 
 		if (!arguments.length) return data;
@@ -53,8 +54,7 @@ function makeNN() {
         // if the feature function hasn't been defined
         if (!nn.featureFunction) return nn;
 
-		x = [];
-		y = [];
+		x = [], y = [];
 
 		data.A.data.forEach( d => {
 			y.push([1]);
@@ -62,7 +62,7 @@ function makeNN() {
 		});
 
 		data.B.data.forEach( d => {
-			y.push([0]);
+			y.push([-1]);
 			x.push(nn.featureFunction([d.x1, d.x2]));
 		});
 
@@ -104,7 +104,7 @@ function makeNN() {
 
 	}
 
-	// do one mini batch
+	// do one step, which is floor(x.length/batchSize) number of mini batches
 	nn.step = function () {
 
 		let N = x.length;
@@ -112,26 +112,40 @@ function makeNN() {
 
 		let inds = _.shuffle(_.range(N));
 
+		let dw, db, dw_, db_, deltas;
+
 		for (let n = 0; n < (N - batchSize); n+=batchSize) {
 
 			batchInds = inds.slice(n, n + batchSize);
 
+			// weight and bias derivatives
+			dw = weights.map(w => math.multiply(w, 0));
+			db = biases.map(b => math.multiply(b, 0));
+
+			// accumulate derivatives over the minibatch
 			_.forEach(batchInds, i => {
 
-				let deltas = nn.back(x[i], y[i]);
+				deltas = nn.back(x[i], y[i]);
 
-				let dw = deltas[0], db = deltas[1];
+				dw_ = deltas[0];
+				db_ = deltas[1];
 
 				for (let j = 0; j < weights.length; j++) {
-
-					// regularization
-					weights[j] = math.multiply(weights[j], 1 - alpha*lambda/batchSize);
-
-					// update
-					weights[j] = math.add(weights[j], math.multiply(dw[j], -alpha/batchSize));
-					biases[j]  = math.add(biases[j], math.multiply(db[j], -alpha/batchSize));
+					dw[j] = math.add(dw[j], dw_[j]);
+					db[j] = math.add(db[j], db_[j]);
 				}
 			});
+
+			// update the weights at the end of every minibatch
+			for (let j = 0; j < weights.length; j++) {
+
+				// subtract derivatives
+				weights[j] = math.add(weights[j], math.multiply(dw[j], -alpha/batchSize));
+				biases[j]  = math.add(biases[j], math.multiply(db[j], -alpha/batchSize));
+
+				// regularization
+				if (lambda) weights[j] = math.multiply(weights[j], 1 - alpha*lambda);
+			}
 		}
 
 		return nn;
@@ -147,33 +161,31 @@ function makeNN() {
 		let nodes = [], z = [];
 		nodes.push(x);
 
-
 		for (let i = 0; i < weights.length; i++) {
 			z.push(math.add(math.multiply(weights[i], nodes[i]), biases[i]));
 			nodes.push(_.last(z).map(nn.activation.g));
 		}
 
-		let nLayers = nodes.length;
-
 		var dw = _.map(weights, () => []);
 		var db = _.map(biases, () => []);
 
-		// error in last layer (for logistic cost)
-		let err = math.add(_.last(nodes), y.map(d => -d));
+		// error in last layer (for logistic/cross-entropy cost)
+		// let err = math.add(_.last(nodes), y.map(d => -d));
+
+		// error in last layer (for quadratic cost function)
+		let err = math.dotMultiply(math.add(_.last(nodes), y.map(d => -d)), z[z.length-1].map(nn.activation.dg));
 
 		// dw[i,j] = err[i]*nodes[j]
 		dw[dw.length-1] = math.multiply(err.map(d => [d]), [nodes[nodes.length-2]]);
 		db[db.length-1] = err;
 
-		for (let i = nLayers-3; i >= 0; i--) {
+		for (let i = nodes.length-3; i >= 0; i--) {
 
 			err = math.dotMultiply(math.multiply(math.transpose(weights[i+1]), err), z[i].map(nn.activation.dg));
 
 			dw[i] = math.multiply(err.map(d => [d]), [nodes[i]]);
 			db[i] = err;
-
 		}
-
 		return [dw, db];
 	}
 
@@ -273,7 +285,7 @@ function makeNN() {
 
 	// classification thresholds for plotting
 	nn.classDomain = function () {
-		return [0, 1];
+		return [-1, 1];
 	}
  
 
