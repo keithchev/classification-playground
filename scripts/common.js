@@ -131,7 +131,6 @@ var FeatureVector = (function () {
 			return d3.selectAll(".feature.plot-button-active").data().length;
 		}
 	}
-
 	return FeatureVector;
 
 })();
@@ -150,9 +149,6 @@ function switchActiveButton(buttonThis, buttonClass) {
   d3.selectAll(buttonClass).classed("plot-button-active", false);
   d3.select(buttonThis).classed("plot-button-active", true);
 }
-
-
-
 
 
 // generate N normally distributed random variables
@@ -177,20 +173,16 @@ function randn(N) {
 
     xlist.push(x1);
     xlist.push(x2);
-    
   }
-
   return _.first(xlist, N);
 }
 
 
 // array of uniform random on [0,1]
 function randu(N) {
-
-var x = [];
-
-for (i = 0; i < N; i++) {
-  x.push(_.random(0, precision)/precision);
-}
-return x;
+	var x = [];
+	for (i = 0; i < N; i++) {
+	  x.push(_.random(0, precision)/precision);
+	}
+	return x;
 }

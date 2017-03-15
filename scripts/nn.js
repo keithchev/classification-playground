@@ -38,10 +38,9 @@ function makeNN() {
 
 
     const tol = .001;		// hard coded tolerance
-
-	var featureVector = new FeatureVector();
-		
+    
 	// initial architecture (num nodes/layer)
+	var featureVector = new FeatureVector();
 	var architecture = makeArchitecture().list([2, 4, 2, 1]);
 
 
