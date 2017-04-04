@@ -5,44 +5,43 @@ function makeNN() {
 	// to do: specify output layer activation separately
 	// write efficient matrix addition/multiplication 
 	// write loss function; add to UI
-
-	var data, 				// data structure 
-	    x, y, 				// feature array x and response vector y
+	
+    	const tol = .001;	// hard coded tolerance
+    
+	var data, 		// data structure 
+	    x, y, 		// feature array x and response vector y
 	    weights, biases,	// list of weight vectors and offset vectors
 
-	    alpha = .1, 		// learning rate - updated in alphaSlider callback
-	    alphaSlider,		// (see nn.load)
-	    lambda = 0,			// regz prefactor - updated in lambdaSlider callback
-	    lambdaSlider,		// 
+	    alpha = .1, 	// learning rate - updated in alphaSlider callback
+	    alphaSlider,	// alpha slider (see nn.load)
+	    lambda = 0,		// regz prefactor - updated in lambdaSlider callback
+	    lambdaSlider,	// regz slider
 
-	    counter = 0,				// step counter
+	    counter = 0,	// step counter
 	    activationName = "tanh";   // default activations
 
-		var activationFuncs = {
-								logit: 
-								{
-									g:  x => 1/(1 + Math.exp(-x)),
-								 	dg: x => { x = 1/(1 + Math.exp(-x)); return x*(1 - x); }
-								},
-								tanh: 
-								{	
-									g:  x => Math.tanh(x),
-									dg: x => { x = Math.tanh(x); return 1 - x*x; }
-								},
-								relu: 
-								{
-									g: x => d3.max([0, x]),
-									dg: x => x > 0 ? 1 : 0,
-								},
-							};
+	var activationFuncs = {
+				logit: 
+				{
+					g:  x => 1/(1 + Math.exp(-x)),
+					dg: x => { x = 1/(1 + Math.exp(-x)); return x*(1 - x); }
+				},
+				tanh: 
+				{	
+					g:  x => Math.tanh(x),
+					dg: x => { x = Math.tanh(x); return 1 - x*x; }
+				},
+				relu: 
+				{
+					g: x => d3.max([0, x]),
+					dg: x => x > 0 ? 1 : 0,
+				},
+			};
 
 
-    const tol = .001;		// hard coded tolerance
-    
 	// initial architecture (num nodes/layer)
 	var featureVector = new FeatureVector();
 	var architecture = makeArchitecture().list([2, 4, 2, 1]);
-
 
 	nn.data = function(val, doNotReset) {
 
@@ -50,8 +49,8 @@ function makeNN() {
 
 		data = val;
 
-        // if the feature function hasn't been defined
-        if (!nn.featureFunction) return nn;
+		// if the feature function hasn't been defined
+		if (!nn.featureFunction) return nn;
 
 		x = [], y = [];
 
@@ -94,24 +93,19 @@ function makeNN() {
 			}
 		});
 
-
 		counter = 0;
-
 		nn.activation = activationFuncs[activationName];
-
 		return nn;
-
 	}
 
+	
 	// do one step, which is floor(x.length/batchSize) number of mini batches
 	nn.step = function () {
 
-		let N = x.length;
-		let batchSize = 10; 
-
-		let inds = _.shuffle(_.range(N));
-
-		let dw, db, dw_, db_, deltas;
+		let N = x.length,
+		    batchSize = 10,
+		    inds = _.shuffle(_.range(N)),
+		    dw, db, dw_, db_, deltas;
 
 		for (let n = 0; n < (N - batchSize); n+=batchSize) {
 
@@ -188,13 +182,12 @@ function makeNN() {
 		return [dw, db];
 	}
 
-
+	
+	// forward pass through the network
 	nn.forward = function (x) {
 
 		var nodes = x;
-
 		_.each(weights, (w, ind) => {
-
 			nodes = math.add(math.multiply(weights[ind], nodes), biases[ind]).map(nn.activation.g);
 		});
 
@@ -202,15 +195,14 @@ function makeNN() {
 	}
 
 
-
 	// draw the options when the model is loaded
 	nn.load = function (div) {
 
 		div = d3.select(div);
-        div.selectAll("div, input, span").remove();
+        	div.selectAll("div, input, span").remove();
 
-        // draw the feature vector selection divs
-        featureVector.draw(div.node(), function (numFeatures) {
+		// draw the feature vector selection divs
+		featureVector.draw(div.node(), function (numFeatures) {
 
 			// update the number of input layer nodes to match the number of features
 			architecture.numInputNodes(numFeatures);
@@ -219,74 +211,71 @@ function makeNN() {
 			d3.select("#architecture-textbox").property("value", architecture.string());
 
 			onChange();
-        });
+        	});
 
-        // draw the architecture textbox
-        arcDiv = div.append("div").attr("class", "slider-container");
+		// draw the architecture textbox
+		arcDiv = div.append("div").attr("class", "slider-container");
 
 		arcDiv.append("div")
 			  .attr("class", "slider-label")
 			  .text("Nodes per layer");
 
-        arcDiv.append("input")
-	          .attrs({type: "textbox", class: "long-textbox", id: "architecture-textbox"})
-	          .property("value", architecture.string())
-	          .on("input", function () {
-	          	architecture.string(this.value);
-	          	onChange();
-	          });
+		arcDiv.append("input")
+			  .attrs({type: "textbox", class: "long-textbox", id: "architecture-textbox"})
+			  .property("value", architecture.string())
+			  .on("input", function () {
+				architecture.string(this.value);
+				onChange();
+			  });
 
-        // select optz method buttons
-        var activationDiv = div.append("div").attr("id", "select-activation-container");
+		// select optz method buttons
+		var activationDiv = div.append("div").attr("id", "select-activation-container");
 
-        activationDiv.append("div").attr("class", "slider-label").text("Activation");
+		activationDiv.append("div").attr("class", "slider-label").text("Activation");
 
-        var activationData = [{label: 'Logit', name: 'logit', selected: true},	
-        					  {label: 'Tanh', name: 'tanh', selected: false},
-        					  {label: 'ReLu', name: 'relu', selected: false}];
+		var activationData = [{label: 'Logit', name: 'logit', selected: true},	
+				      {label: 'Tanh', name: 'tanh', selected: false},
+				      {label: 'ReLu', name: 'relu', selected: false}];
 
-	    activationDiv.selectAll(".select-activation").data(activationData)
-	    			 .enter().append("div")
-	    			 .attrs({class: "plot-button select-activation"})
-	    			 .text(d => d.label)
-	    			 .on("click", function (d) {
-	    			 	switchActiveButton(this, ".select-activation")
-	    			 	activationName = d.name;
-	    			 	onChange();
-	    			 })
-	    			 .classed("plot-button-active", d => d.name==activationName);
+		activationDiv.selectAll(".select-activation").data(activationData)
+				 .enter().append("div")
+				 .attrs({class: "plot-button select-activation"})
+				 .text(d => d.label)
+				 .on("click", function (d) {
+					switchActiveButton(this, ".select-activation")
+					activationName = d.name;
+					onChange();
+				 })
+				 .classed("plot-button-active", d => d.name==activationName);
 
 
-        // create parameter sliders w/ a simple callback that updates the relevant parameter
-        // (alpha and lambda are closure-scoped)
-        alphaSlider = new Slider(div.append("div").node(), "Learning rate", [.01, 1], value => alpha = value);
-        alphaSlider.value(alpha);
+		// create parameter sliders w/ a simple callback that updates the relevant parameter
+		// (alpha and lambda are closure-scoped)
+		alphaSlider = new Slider(div.append("div").node(), "Learning rate", [.01, 1], value => alpha = value);
+		alphaSlider.value(alpha);
 
-        lambdaSlider = new Slider(div.append("div").node(), "L2 Regularization", [0, .1], value => lambda = value);
-        lambdaSlider.value(lambda);
+		lambdaSlider = new Slider(div.append("div").node(), "L2 Regularization", [0, .1], value => lambda = value);
+		lambdaSlider.value(lambda);
 
-        // if any setting is changed that requires model reset (i.e., architecture, feature vector, activation function)
-        function onChange () {
-    		if (APP.player) APP.player.reset(); 
-        }
+		// if any setting is changed that requires model reset (i.e., architecture, feature vector, activation function)
+		function onChange () {
+			if (APP.player) APP.player.reset(); 
+		}
 
 		return nn;
 
-	}
+	} // nn.load
 
 
 	// classifier value at x
 	nn.classifyPoint = function (xThis) {
-
 		return nn.forward(nn.featureFunction(xThis));
-
 	}
 
 	// classification thresholds for plotting
 	nn.classDomain = function () {
 		return [-1, 1];
 	}
- 
 
 	return nn;
 }
@@ -297,7 +286,7 @@ function makeArchitecture() {
 	var architectureString, architectureList;
 
 	// architectureList is just an array of node numbers: ex [2, 4, 1]
-	// this is a lot of wrapper for very little functionality - 
+	// this is a lot of wrapper for very little functionality... 
 	// designed to handle future, more sophisticated architecture descriptions/type-checking
 
 	function architecture () {}
@@ -345,40 +334,42 @@ function makeArchitecture() {
 	return architecture;
 }
 
-	// dot product between two vectors
-	function vdot (x1, x2) {
-		var dp = 0;
-		_.each(x1, (val, i) => dp += x1[i]*x2[i]);
-		return dp;
+
+// ------------------------
+// utilities for matrix operations 
+// ------------------------
+
+// dot product between two vectors
+function vdot (x1, x2) {
+	var dp = 0;
+	_.each(x1, (val, i) => dp += x1[i]*x2[i]);
+	return dp;
+}
+
+function vadd(x1, x2) {
+	return _.map(x1, (val, ind) => x1[ind] + x2[ind]);
+}
+
+// dot product between matrix A and vector x
+// A is of the form [ [A11, A12, ...], [A21, A22, ...], [...] ]
+// x is a list [x1, x2, x3, ...]
+function mdot (A, x) {
+
+	var y = [];
+
+	_.each(A, (val, ind) => {
+		y.push(vdot(A[ind], x));
+	});
+
+	return y;
+}
+
+
+function randomMatrix(size) {
+	var m = [];
+	for (var i = 0; i < size[0]; i++) {
+		m.push(randn(size[1]));
 	}
+	return m;
+}
 
-	function vadd(x1, x2) {
-		return _.map(x1, (val, ind) => x1[ind] + x2[ind]);
-	}
-
-	// dot product between matrix A and vector x
-	// A is of the form [ [A11, A12, ...], [A21, A22, ...], [...] ]
-	// x is a list [x1, x2, x3, ...]
-
-	function mdot (A, x) {
-
-		var y = [];
-
-		_.each(A, (val, ind) => {
-			y.push(vdot(A[ind], x));
-		});
-
-		return y;
-	}
-
-	function randomMatrix(size) {
-
-		var m = [];
-
-		for (var i = 0; i < size[0]; i++) {
-			m.push(randn(size[1]));
-		}
-
-		return m;
-
-	}
