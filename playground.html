@@ -1,142 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title></title>
+    <title></title>
 
-  <link rel="icon"          href="../favicon.ico" type="image/x-icon" />
-  <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
-  <!-- Bootstrap css -->
-  <link href="./components/bootstrap/bootstrap.min.custom-breakpoint.css" rel="stylesheet">
-  <!--  leaflet css -->
-  <link rel="stylesheet" href="./components/leaflet/leaflet.css" />
-  <link href="https://fonts.googleapis.com/css?family=Roboto|Roboto+Mono" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css?family=Roboto:b,i|Roboto+Mono:b,i" rel="stylesheet">
+    <link rel="icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
+
+    <!-- Bootstrap css -->
+    <link href="./components/bootstrap/bootstrap.min.custom-breakpoint.css" rel="stylesheet">
+
+    <!--    leaflet css -->
+    <link rel="stylesheet" href="./components/leaflet/leaflet.css" />
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto|Roboto+Mono" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:b,i|Roboto+Mono:b,i" rel="stylesheet">
 
 </head>
 <body>
-
     <div class="container-fluid" id="main-container">
-      <div class="row">
+        <div class="row">
 
-      <!--  header  -->
-        <div class="col-sm-12 zero-pad-left"><h1>Classification playground</h1></div>
-      
-        <!-- plot controls (above the plot) -->
-        <div class="col-sm-12 zero-pad-left">
-          <div class="button-group">
-            <div class="hint">shift+click to pan, shift+scroll to zoom</div>
-            <div class="plot-button" id="reset-plot">Recenter view</div>
-          </div>  
-        </div>  
+            <!-- header -->
+            <div class="col-sm-12 zero-pad-left"><h1>Classification playground</h1></div>
         
-        <!-- main plot container -->
-        <div class="col-sm-6 zero-pad-left" id="plot-container"></div>
-
-        <!-- main controls container (right of plot) -->
-        <div class="col-sm-5 zero-pad-left" id="controls-container">
-          
-          <div class="class-controls">
-            <div class="header">Edit data</div>
+            <!-- plot controls (above the plot) -->
+            <div class="col-sm-12 zero-pad-left">
+                <div class="button-group">
+                    <div class="hint">shift+click to pan, shift+scroll to zoom</div>
+                    <div class="plot-button" id="reset-plot">Recenter view</div>
+                </div>    
+            </div>    
             
-            <div class="button-group">
-              <div class="plot-button-label">Type </div>
-              <div class="plot-button select-data" id="select-blobs">Blobs</div>
-              <div class="plot-button select-data" id="select-xor">XOR</div>
-              <div class="plot-button select-data" id="select-circle">Circle</div>
-            </div>
+            <!-- main plot container -->
+            <div class="col-sm-6 zero-pad-left" id="plot-container"></div>
 
-            <div class="button-group">
-              <div class="plot-button-label">Edit </div>
-              <div class="plot-button select-class" id="select-class-a">Blue</div>
-              <div class="plot-button select-class" id="select-class-b">Red</div>
-            </div>
+            <!-- main controls container (right of plot) -->
+            <div class="col-sm-5 zero-pad-left" id="controls-container">
+                
+                <div class="class-controls">
+                    <div class="header">Edit data</div>
+                    
+                    <div class="button-group">
+                        <div class="plot-button-label">Type </div>
+                        <div class="plot-button select-data" id="select-blobs">Blobs</div>
+                        <div class="plot-button select-data" id="select-xor">XOR</div>
+                        <div class="plot-button select-data" id="select-circle">Circle</div>
+                    </div>
 
-            <div class="button-group">
-              <div class="plot-button-label">Mouse </div>
-              <div class="plot-button select-mouse" id="mouse-pan">Pan/zoom</div>
-              <div class="plot-button select-mouse" id="mouse-add-point">Add point</div>
-              <div class="plot-button select-mouse" id="mouse-remove-point">Remove</div>
-            </div>
-            
-            <div id="slider-num-container"></div>
-            <div id="slider-noise-container"></div>
-          </div>
+                    <div class="button-group">
+                        <div class="plot-button-label">Edit </div>
+                        <div class="plot-button select-class" id="select-class-a">Blue</div>
+                        <div class="plot-button select-class" id="select-class-b">Red</div>
+                    </div>
 
-          <div class="model-controls">
-            <div class="header">Select model</div>
-            <div class="button-group" id="select-model-container"></div>
-          </div>
+                    <div class="button-group">
+                        <div class="plot-button-label">Mouse </div>
+                        <div class="plot-button select-mouse" id="mouse-pan">Pan/zoom</div>
+                        <div class="plot-button select-mouse" id="mouse-add-point">Add point</div>
+                        <div class="plot-button select-mouse" id="mouse-remove-point">Remove</div>
+                    </div>
+                    
+                    <div id="slider-num-container"></div>
+                    <div id="slider-noise-container"></div>
+                </div>
 
-          <div>
-            <div class="header">Edit model</div>
-            <div class="button-group" id="model-options-container"></div>
-          </div>
+                <div class="model-controls">
+                    <div class="header">Select model</div>
+                    <div class="button-group" id="select-model-container"></div>
+                </div>
 
-          <div>
-            <div class="header">Control model</div>
-            <div class="button-group">
-              <div class="plot-button" id="start-model">Start</div>
-              <div class="plot-button" id="step-model">Step</div>
-              <div class="plot-button" id="reset-model">Reset</div>
-            </div>
-          </div>
+                <div>
+                    <div class="header">Edit model</div>
+                    <div class="button-group" id="model-options-container"></div>
+                </div>
 
-        </div>  <!-- end controls container -->
-      </div> <!-- end row -->
+                <div>
+                    <div class="header">Control model</div>
+                    <div class="button-group">
+                        <div class="plot-button" id="start-model">Start</div>
+                        <div class="plot-button" id="step-model">Step</div>
+                        <div class="plot-button" id="reset-model">Reset</div>
+                    </div>
+                </div>
+
+            </div> <!-- end controls container -->
+        </div> <!-- end row -->
     </div> <!-- end container-fluid -->
 
-  <!-- custom style -->
-  <link rel="stylesheet/less" type="text/css" href="styles/activity-classify.less" />
-  <link rel="stylesheet/less" type="text/css" href="styles/custom-range-input.less" />
+    <!-- custom style -->
+    <link rel="stylesheet/less" type="text/css" href="styles/activity-classify.less" />
+    <link rel="stylesheet/less" type="text/css" href="styles/custom-range-input.less" />
 
-  <!-- less default options -->
-  <script>
-    less = {
-      env: "development",
-      async: false,
-      fileAsync: false,
-      poll: 1000,
-      functions: {},
-      dumpLineNumbers: "comments",
-      relativeUrls: false,
-      rootpath: ":/a.com/"
-    };
-  </script>
+    <!-- less default options -->
+    <script>
+        less = {
+            env: "development",
+            async: false,
+            fileAsync: false,
+            poll: 1000,
+            functions: {},
+            dumpLineNumbers: "comments",
+            relativeUrls: false,
+            rootpath: ":/a.com/"
+        };
+    </script>
 
-  <!-- third-party components -->
-  <script src="./components/less/less.min.js"></script>
-  <script src="./components/crossfilter.v1.min.js"></script>
-  <script src="./components/underscore.min.js"></script>
-  <script src="./components/math.min.js"></script>
+    <!-- third-party components -->
+    <script src="./components/math.min.js"></script>
+    <script src="./components/less/less.min.js"></script>
+    <script src="./components/underscore.min.js"></script>
+    <script src="./components/crossfilter.v1.min.js"></script>
 
-  <!-- d3 -->
-  <script src="./components/d3.v4/d3.min.js"></script>
-  <script src="./components/d3-tip/index.js"></script>
-  <script src="./components/d3-scale-chromatic.v1.min.js"></script>
-  <script src="./components/d3-selection-multi.min.js"></script>
-  
-  <!-- 
-  <script src="./components/leaflet/leaflet.js"></script>
-  <script src="./components/topojson.v1.min.js"></script> 
-  -->
+    <!-- d3 -->
+    <script src="./components/d3.v4/d3.min.js"></script>
+    <script src="./components/d3-tip/index.js"></script>
+    <script src="./components/d3-selection-multi.min.js"></script>
+    <script src="./components/d3-scale-chromatic.v1.min.js"></script>
+    
+    <!-- 
+    <script src="./components/leaflet/leaflet.js"></script>
+    <script src="./components/topojson.v1.min.js"></script> 
+    -->
 
-  <script src="./scripts/common.js"></script>
-  <script src="./scripts/data.js"></script>
-  <script src="./scripts/logistic.js"></script>
-  <script src="./scripts/svm.js"></script>
-  <script src="./scripts/nn.js"></script>
-  
-  <script src="./scripts/main.js"></script>
+    <script src="./scripts/data.js"></script>
+    <script src="./scripts/common.js"></script>
 
-  <script>
+    <script src="./scripts/nn.js"></script>
+    <script src="./scripts/svm.js"></script>
+    <script src="./scripts/logistic.js"></script>
+
+    <script src="./scripts/main.js"></script>    
+
+    <script>
 
 
 
-  </script>
+    </script>
 
 </body>
 </html>
