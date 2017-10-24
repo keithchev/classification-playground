@@ -3,135 +3,135 @@ var Slider = (function () {
 
     class Slider {
 
-		constructor (container, label, range, callback) {
+        constructor (container, label, range, callback) {
 
-			if (!callback) callback = val => null;
+            if (!callback) callback = val => null;
 
-			var sliderMin = 0;
-			var sliderMax = 100;
+            var sliderMin = 0;
+            var sliderMax = 100;
 
-			// wrapper div within container
-			container = d3.select(container).append("div").attr("class", "slider-container").node();
+            // wrapper div within container
+            container = d3.select(container).append("div").attr("class", "slider-container").node();
 
-			d3.select(container)
-			  .append("div")
-			  .attr("class", "slider-label")
-			  .text(label);
+            d3.select(container)
+              .append("div")
+              .attr("class", "slider-label")
+              .text(label);
 
 
-			this.sliderValToVal = sliderVal => range[0] + (range[1] - range[0]) * sliderVal/sliderMax;
+            this.sliderValToVal = sliderVal => range[0] + (range[1] - range[0]) * sliderVal/sliderMax;
 
-			this.valToSliderVal = val =>  Math.round(sliderMax*(val - range[0]) / (range[1] - range[0]));
+            this.valToSliderVal = val =>  Math.round(sliderMax*(val - range[0]) / (range[1] - range[0]));
 
-			this.slider = d3.select(container)
-					        .append("input")
-					        .attrs({type: "range", min: sliderMin, max: sliderMax, class: "parameter-slider"});
+            this.slider = d3.select(container)
+                            .append("input")
+                            .attrs({type: "range", min: sliderMin, max: sliderMax, class: "parameter-slider"});
 
-			this.textbox = d3.select(container)
-							 .append("input")
-							 .attrs({type: "text", class: "parameter-textbox"});
+            this.textbox = d3.select(container)
+                             .append("input")
+                             .attrs({type: "text", class: "parameter-textbox"});
 
-			var this_ = this;
+            var this_ = this;
 
-			this.slider.on("input", function () {
-				this_.textbox.property("value", this_.sliderValToVal(this_.slider.node().value));
-				callback(this_.value()); 
-			});
+            this.slider.on("input", function () {
+                this_.textbox.property("value", this_.sliderValToVal(this_.slider.node().value));
+                callback(this_.value()); 
+            });
 
-			this.textbox.on("input", function () {
-				this_.slider.property("value", this_.valToSliderVal(this_.textbox.node().value));
-				callback(this_.value());
-			});
+            this.textbox.on("input", function () {
+                this_.slider.property("value", this_.valToSliderVal(this_.textbox.node().value));
+                callback(this_.value());
+            });
         }
 
-		value (val) {
+        value (val) {
 
-			if (!arguments.length) return +this.textbox.node().value;
+            if (!arguments.length) return +this.textbox.node().value;
 
-			this.slider.property("value", `${this.valToSliderVal(val)}`);
-			this.textbox.property("value", `${val}`);
+            this.slider.property("value", `${this.valToSliderVal(val)}`);
+            this.textbox.property("value", `${val}`);
 
-		}
+        }
     }
 
-	return Slider;
+    return Slider;
 
 })();
 
 
 var FeatureVector = (function () {
 
-	class FeatureVector {
+    class FeatureVector {
 
-		constructor () {
+        constructor () {
 
-			this.featureTypes = [[
-			        {label: "x<sub>1</sub>",   f: x => x[0], "active": true }, 
-			        {label: "x<sub>2</sub>",   f: x => x[1], "active": true }
-			     ],[
-			        {label: "x<sub>1</sub><sup>2</sup>", f: x => x[0]*x[0], "active": false }, 
-			        {label: "x<sub>2</sub><sup>2</sup>", f: x => x[1]*x[1], "active": false }
-			     ],[
-			        {label: "x<sub>1</sub>*x<sub>2</sub>", f: x => x[0]*x[1], "active": false }
-			     ],[
-			        {label: "sin(x<sub>1</sub>)", f: x => Math.sin(x[0]), "active": false },
-			        {label: "sin(x<sub>2</sub>)", f: x => Math.sin(x[1]), "active": false }
-			    ]];
+            this.featureTypes = [[
+                    {label: "x<sub>1</sub>",   f: x => x[0], "active": true }, 
+                    {label: "x<sub>2</sub>",   f: x => x[1], "active": true }
+                 ],[
+                    {label: "x<sub>1</sub><sup>2</sup>", f: x => x[0]*x[0], "active": false }, 
+                    {label: "x<sub>2</sub><sup>2</sup>", f: x => x[1]*x[1], "active": false }
+                 ],[
+                    {label: "x<sub>1</sub>*x<sub>2</sub>", f: x => x[0]*x[1], "active": false }
+                 ],[
+                    {label: "sin(x<sub>1</sub>)", f: x => Math.sin(x[0]), "active": false },
+                    {label: "sin(x<sub>2</sub>)", f: x => Math.sin(x[1]), "active": false }
+                ]];
 
-		    this.useOffset = false;
+            this.useOffset = false;
 
-		}
+        }
 
-		setOffsetFlag (flag) {
-			this.useOffset = flag;
-		}
+        setOffsetFlag (flag) {
+            this.useOffset = flag;
+        }
 
-		draw (container, callback) {
+        draw (container, callback) {
 
-			var this_ = this;
+            var this_ = this;
 
-	        var featureTypeDivs = d3.select(container)
-	        						.append("div")
-	                                .attr("id", "select-features-container")
-	                                .selectAll("div").data(this.featureTypes)
-	                                .enter().append("div")
-	                                .attr("class", "feature-type");
+            var featureTypeDivs = d3.select(container)
+                                    .append("div")
+                                    .attr("id", "select-features-container")
+                                    .selectAll("div").data(this.featureTypes)
+                                    .enter().append("div")
+                                    .attr("class", "feature-type");
 
-	        featureTypeDivs.selectAll("div").data(featureType => featureType)
-	                       .enter().append("div")
-	                       .attr("class", "plot-button feature")
-	                       .html(d => d.label)
-	                       .on("click", function () {
-	                          	d3.select(this).classed("plot-button-active", !d3.select(this).classed("plot-button-active"));
-	                        	callback(this_.numFeatures()); 
-	                        })
-	                       .classed("plot-button-active", d => d.active);
+            featureTypeDivs.selectAll("div").data(featureType => featureType)
+                           .enter().append("div")
+                           .attr("class", "plot-button feature")
+                           .html(d => d.label)
+                           .on("click", function () {
+                                d3.select(this).classed("plot-button-active", !d3.select(this).classed("plot-button-active"));
+                                callback(this_.numFeatures()); 
+                            })
+                           .classed("plot-button-active", d => d.active);
 
-		}
-		
-		// construct the function to generate a feature vector for a point x = [x1,x2] 
-		vector () {
+        }
+        
+        // construct the function to generate a feature vector for a point x = [x1,x2] 
+        vector () {
 
-			var selectedFeatures = d3.selectAll(".feature.plot-button-active").data();
-			var offsetFlag = this.useOffset;
+            var selectedFeatures = d3.selectAll(".feature.plot-button-active").data();
+            var offsetFlag = this.useOffset;
 
-			return function (x) {
+            return function (x) {
 
-				var featureList = offsetFlag ? [1] : [];
+                var featureList = offsetFlag ? [1] : [];
 
-				// add currently selected feature functions (x1, x1^2, etc)
-				selectedFeatures.map( feature => featureList.push(feature.f(x)) );
+                // add currently selected feature functions (x1, x1^2, etc)
+                selectedFeatures.map( feature => featureList.push(feature.f(x)) );
 
-				return featureList;
+                return featureList;
 
-			}
-		}
+            }
+        }
 
-		numFeatures () {
-			return d3.selectAll(".feature.plot-button-active").data().length;
-		}
-	}
-	return FeatureVector;
+        numFeatures () {
+            return d3.selectAll(".feature.plot-button-active").data().length;
+        }
+    }
+    return FeatureVector;
 
 })();
 
@@ -139,9 +139,9 @@ var FeatureVector = (function () {
 // ** copied from MBTA viz **
 // move an SVG selection to the front
 d3.selection.prototype.moveToFront = function () {
-	return this.each(function () {
-	  this.parentNode.appendChild(this);
-	});
+    return this.each(function () {
+      this.parentNode.appendChild(this);
+    });
 };
 
 
@@ -180,9 +180,9 @@ function randn(N) {
 
 // array of uniform random on [0,1]
 function randu(N) {
-	var x = [];
-	for (i = 0; i < N; i++) {
-	  x.push(_.random(0, precision)/precision);
-	}
-	return x;
+    var x = [];
+    for (i = 0; i < N; i++) {
+      x.push(_.random(0, precision)/precision);
+    }
+    return x;
 }
